@@ -1,0 +1,11 @@
+{
+  "id": "T09",
+  "slug": "dispute-deadlines",
+  "title": "Dispute lifecycle and inclusive UTC deadline",
+  "why": "Deadlines can be accidentally shifted by timezone parsing, and idempotency must not reopen resolved disputes.",
+  "contract": "Implement `apply_dispute(dispute: dict,event: dict)->dict`. Dispute state {\"dispute_id\":str,\"status\":\"opened\"|\"evidence_submitted\"|\"won\"|\"lost\", \"evidence_deadline\": ISO8601 aware timestamp, \"processed_ids\":list[str]}. Event {\"dispute_id\":str,\"event_id\":nonempty str,\"action\":\"submit_evidence\"|\"resolve_won\"|\"resolve_lost\",\"occurred_at\":ISO8601 aware timestamp}. Return a NEW dictionary with a NEW processed_ids list, never mutate inputs. Duplicate event_id is a no-op returning unchanged copy. `submit_evidence` only valid when status opened and occurred_at <= evidence_deadline (inclusive) comparing UTC instants. Resolutions only valid after evidence_submitted; resolution timestamps can exceed the evidence deadline. Resolved states won/lost are terminal; other transitions raise ValueError without change. Mismatched IDs, malformed timestamps or naive datetimes raise ValueError. Accepted events append event_id and set status; do not use current system time.",
+  "intrinsic_difficulty": "An equality-boundary deadline expressed with a different UTC offset can be incorrectly rejected or a terminal dispute reopened.",
+  "adversarial_probe": "Test equivalent instants, exactly-on-deadline submission, replay after terminal resolution and invalid naive timestamps.",
+  "pilot_priority": "LOWER_PRIORITY",
+  "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+}

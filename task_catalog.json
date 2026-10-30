@@ -1,0 +1,112 @@
+[
+  {
+    "id": "T01",
+    "slug": "capture-idempotency",
+    "title": "Idempotent payment capture",
+    "why": "Retries and concurrent requests must never charge a customer twice or silently reuse a key for a different payment.",
+    "contract": "Implement `setup(conn)` and `capture(conn, key: str, account_id: str, amount_cents: int) -> dict` in `service.py` using Python 3.11 and SQLite. `setup` creates accounts(account_id TEXT PRIMARY KEY, balance_cents INTEGER NOT NULL) and captures(key TEXT PRIMARY KEY, account_id TEXT, amount_cents INTEGER, receipt_id TEXT); it must be safe to call repeatedly. Tests seed accounts after setup. On a new capture: key and account_id must be nonempty strings; amount_cents must be a positive int, not bool; account must exist and have sufficient balance. Atomically subtract amount and store a receipt with ID `cap_{key}`. Return exactly {\"receipt_id\": ..., \"account_id\": ..., \"amount_cents\": ..., \"status\": \"captured\"}. A repeat with same key, account and amount returns that receipt without a second debit. A key reused with different account or amount raises ValueError and makes no changes. Any invalid input or insufficient funds raises ValueError with no partial changes. Independent SQLite connections may attempt the same capture concurrently; serialize correctly, e.g. BEGIN IMMEDIATE. Do not depend on external services or in-memory global state.",
+    "intrinsic_difficulty": "An idempotency record must be committed with its debit; a failure after debiting but before writing the receipt must not lose money.",
+    "adversarial_probe": "Inject failure on receipt insertion after balance update; verify full rollback and safe replay on a fresh connection.",
+    "pilot_priority": "PILOT",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T02",
+    "slug": "refund-ceiling",
+    "title": "Partial refund ceiling and replay",
+    "why": "Refunds may arrive concurrently and in installments; the sum must never exceed a captured payment.",
+    "contract": "Implement `setup(conn)` and `refund(conn, capture_id: str, refund_key: str, amount_cents: int) -> dict` in service.py. `setup` creates captures(capture_id TEXT PRIMARY KEY, account_id TEXT, amount_cents INTEGER), balances(account_id TEXT PRIMARY KEY, available_cents INTEGER), refunds(refund_key TEXT PRIMARY KEY,capture_id TEXT,amount_cents INTEGER,receipt_id TEXT). Tests seed valid captures and balances. New refund must be positive integer cents (bool invalid), existing capture and balance, and must not exceed the captured amount when added to all earlier refunds for the same capture. Atomically add refund amount to available_cents and persist the refund receipt `ref_{refund_key}`. Same refund key with identical capture/amount replays without changes; changed payload raises ValueError. Return exactly {\"receipt_id\": ...,\"capture_id\": ...,\"amount_cents\": ...,\"status\":\"refunded\"}. Invalid attempts leave database unchanged. Independent connections may race; use BEGIN IMMEDIATE or equivalent.",
+    "intrinsic_difficulty": "Two individually valid refunds may jointly exceed the original charge; a failure between balance credit and refund record must not create free money.",
+    "adversarial_probe": "Inject failure after balance update and before refund insertion; verify rollback plus cumulative ceiling under contention.",
+    "pilot_priority": "PILOT",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T03",
+    "slug": "double-entry-transfer",
+    "title": "Exact double-entry transfer posting",
+    "why": "Ledger posting must preserve exact cents and currency constraints; silent float rounding and unbalanced journal entries are unacceptable.",
+    "contract": "Implement `setup(conn)` and `post_transfer(conn, transfer_id: str, source: str, target: str, amount: str, currency: str)->dict`. `setup` creates accounts(account_id TEXT PRIMARY KEY,currency TEXT), transfers(transfer_id TEXT PRIMARY KEY,source TEXT,target TEXT,currency TEXT,amount_minor INTEGER), entries(transfer_id TEXT,account_id TEXT,side TEXT,amount_minor INTEGER,currency TEXT,PRIMARY KEY(transfer_id,side)). Tests seed accounts. Supported currencies are USD and EUR, both with two decimal minor units. `amount` MUST be a decimal string greater than zero with no more than two nonzero fractional decimal digits: '1', '1.2', '1.20', and '1.200' are valid because extra zeros do not change value; '1.201' is invalid. No floats. Both accounts must exist and have the supplied currency, and source != target. Atomically insert one transfer and exactly two postings: `debit` on source and `credit` on target, both for identical positive amount_minor. A matching retry with same transfer ID and all fields returns the prior receipt; conflicting reuses raise ValueError. Output exactly {\"transfer_id\": id, \"amount_minor\": int, \"entry_count\": 2}. All invalid calls leave the DB unchanged.",
+    "intrinsic_difficulty": "Correct arithmetic can still produce unbalanced journals after partial writes or conflicting retry payloads.",
+    "adversarial_probe": "Force second journal insertion failure and verify all-or-nothing posting, then retry with conflicting fields.",
+    "pilot_priority": "SECOND_WAVE",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T04",
+    "slug": "webhook-ordering",
+    "title": "Out-of-order payment webhook state machine",
+    "why": "Webhook arrival order does not imply transaction transition order, and terminal states cannot be reopened.",
+    "contract": "Implement `apply_event(state: dict,event: dict)->dict`. Both input dictionaries must remain unchanged. State shape: {\"payment_id\": str,\"status\": one of created|authorized|captured|refunded|cancelled, \"last_sequence\": nonnegative int,\"processed_ids\": list[str]}. Event shape: {\"payment_id\": str,\"event_id\": nonempty str,\"sequence\": positive int,\"new_status\": one of authorized|captured|refunded|cancelled}. Valid transitions only: created->authorized, created->cancelled, authorized->captured, authorized->cancelled, captured->refunded. `refunded` and `cancelled` are terminal. For an already processed event_id or an event whose sequence <= last_sequence, return an unchanged copy. If the next event has a legal transition and strictly greater sequence, return a fresh state with new status/last_sequence and event_id appended. An event with a greater sequence but invalid state transition is ignored WITHOUT consuming sequence or event_id, so it may be retried after missing earlier events. A payment_id mismatch or malformed event raises ValueError, inputs unchanged. Invalid events do not advance state.",
+    "intrinsic_difficulty": "A later event can arrive before an earlier event, and discarding it as processed too early makes legitimate recovery impossible.",
+    "adversarial_probe": "Deliver future capture before authorization, then missing authorization, then replay capture; inspect consumed IDs/sequence.",
+    "pilot_priority": "PILOT",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T05",
+    "slug": "settlement-reconciliation",
+    "title": "Settlement reconciliation with duplicates",
+    "why": "Duplicate or missing settlement records can silently hide financial differences unless both sources are reconciled as multisets.",
+    "contract": "Implement `reconcile(ledger: list[dict], settlement: list[dict])->dict` in service.py. Ledger rows: {\"transaction_id\":str,\"status\":\"settled\"|\"pending\",\"gross_cents\":int,\"fee_cents\":int}. Settlement rows: {\"transaction_id\":str,\"net_cents\":int}. IDs are nonempty strings and values are nonnegative ints (inputs otherwise valid). For repeated IDs in either source, the FIRST occurrence is authoritative; report each duplicated ID once as {\"source\":\"ledger\"|\"settlement\",\"transaction_id\":id}, sorted by source then ID. Only unique ledger IDs with status settled contribute expected net = gross_cents-fee_cents (data guarantees gross >= fee). Missing is sorted settled ledger IDs with no settlement record. Unexpected is sorted settlement IDs whose ledger ID is missing or pending. A mismatch exists only when a settled ledger ID has a settlement record and differing net_cents; output {\"transaction_id\":id,\"expected_cents\":int,\"received_cents\":int} sorted by ID. `expected_total_cents` sums first-occurrence settled ledger nets. `received_total_cents` sums first-occurrence settlement amounts, INCLUDING unexpected records. Output exact keys: duplicates (list), missing (list[str]), unexpected (list[str]), amount_mismatches (list[dict]), expected_total_cents (int), received_total_cents (int). Do not mutate inputs; use only standard library.",
+    "intrinsic_difficulty": "Reconciling duplicated identifiers using a plain set loses which row was authoritative and can hide net differences.",
+    "adversarial_probe": "Combine same-ID duplicates, pending ledger entries, missing settlements and mismatched fees with totals.",
+    "pilot_priority": "SECOND_WAVE",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T06",
+    "slug": "fx-rounding",
+    "title": "FX conversion and currency-specific precision",
+    "why": "Float arithmetic, unsupported currencies, and one-size-fits-all cent rounding can misstate international payments.",
+    "contract": "Implement `convert(amount: str, source: str, target: str, rate: str) -> dict`. All monetary inputs and rates are decimal STRINGS (never floats). Currencies and minor-unit scales: USD=2, EUR=2, JPY=0, KWD=3. `amount` must represent a positive finite amount exactly expressible in the SOURCE minor units, allowing additional trailing zeros; `rate` must be a positive finite decimal. Reject unknown currencies, numeric rather than string inputs, negative/zero amounts or rates, and fractional source minor units with ValueError. Compute target value using exact decimal arithmetic `Decimal(amount) * Decimal(rate)`; round once to the TARGET minor-unit scale using ROUND_HALF_EVEN. Return exactly {\"target_minor\": int, \"target_amount\": fixed-width decimal str, \"rate\": unchanged rate str}. Example: USD 1.01 at rate 0.5 to USD gives 0.50, 50 minor units (banker's rounding). No network access or FX lookup; caller-supplied rate is authoritative.",
+    "intrinsic_difficulty": "Cross-currency minor-unit scales and half-even ties can make a numerically plausible conversion off by one smallest unit.",
+    "adversarial_probe": "Vary source/target precision, tie directions, trailing zeros and invalid amount types.",
+    "pilot_priority": "LOWER_PRIORITY",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T07",
+    "slug": "subscription-proration",
+    "title": "UTC-aware subscription proration",
+    "why": "Billing changes during a period must account for exact elapsed time, timezone offsets, and well-defined half-open boundaries.",
+    "contract": "Implement `prorate(period_start: str, period_end: str, effective_at: str, old_cents: int, new_cents: int) -> dict`. Times are ISO 8601 strings WITH timezone offsets or Z; parse and compare as UTC instants. Period is half-open [period_start,period_end); effective_at can equal either endpoint. All three datetimes must be second-precision (microseconds zero); period_end must be strictly later than period_start. Both rate values must be nonnegative int cents and not bool. Compute exact total_seconds and remaining_seconds. The full-period charge equals `old_cents * elapsed_seconds / total_seconds + new_cents * remaining_seconds / total_seconds`, rounded ONCE to the nearest integer cent using ROUND_HALF_EVEN (not the sum of separately rounded components). Return exactly {\"charge_cents\": int, \"total_seconds\": int,\"remaining_seconds\": int}. Invalid inputs raise ValueError. Real seconds elapsed, not calendar day counts, determine proration; do not use the local machine timezone.",
+    "intrinsic_difficulty": "Billing changes near a timezone transition can be mispriced when elapsed days replace elapsed UTC seconds or components round separately.",
+    "adversarial_probe": "Use fixed aware instants spanning offset changes and an exact tie that must round only once.",
+    "pilot_priority": "LOWER_PRIORITY",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T08",
+    "slug": "marketplace-splits",
+    "title": "Deterministic largest-remainder payouts",
+    "why": "Rounding individual splits independently can create or destroy cents and make repeated allocation nondeterministic.",
+    "contract": "Implement `allocate(gross_cents: int, fee_cents: int, weights: dict[str,int]) -> dict`. gross_cents must be a positive int, fee_cents a nonnegative int <= gross, neither may be bool. weights is a nonempty dict of unique nonempty string seller IDs to positive integer weights (bool invalid). Distribute NET = gross_cents-fee_cents using Hamilton/largest-remainder apportionment entirely in integer arithmetic: each seller initially gets floor(net * weight / sum_weights). Assign remaining cents one at a time to sellers in descending order of integer remainder `(net*weight)%sum_weights`, ties broken by seller ID ascending in Unicode lexical order. Return exactly {\"fee_cents\":fee_cents,\"allocations\":{seller_id:int, ...},\"payout_total_cents\":net}, with allocation keys inserted in ascending seller ID order. Must conserve every cent, not mutate weights, and reject invalid inputs with ValueError.",
+    "intrinsic_difficulty": "A one-cent remainder may be allocated inconsistently when weight ordering or ties change.",
+    "adversarial_probe": "Permute input seller order and test adversarial ties and fee subtraction; future extension: proportional refund reversals.",
+    "pilot_priority": "LOWER_PRIORITY",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T09",
+    "slug": "dispute-deadlines",
+    "title": "Dispute lifecycle and inclusive UTC deadline",
+    "why": "Deadlines can be accidentally shifted by timezone parsing, and idempotency must not reopen resolved disputes.",
+    "contract": "Implement `apply_dispute(dispute: dict,event: dict)->dict`. Dispute state {\"dispute_id\":str,\"status\":\"opened\"|\"evidence_submitted\"|\"won\"|\"lost\", \"evidence_deadline\": ISO8601 aware timestamp, \"processed_ids\":list[str]}. Event {\"dispute_id\":str,\"event_id\":nonempty str,\"action\":\"submit_evidence\"|\"resolve_won\"|\"resolve_lost\",\"occurred_at\":ISO8601 aware timestamp}. Return a NEW dictionary with a NEW processed_ids list, never mutate inputs. Duplicate event_id is a no-op returning unchanged copy. `submit_evidence` only valid when status opened and occurred_at <= evidence_deadline (inclusive) comparing UTC instants. Resolutions only valid after evidence_submitted; resolution timestamps can exceed the evidence deadline. Resolved states won/lost are terminal; other transitions raise ValueError without change. Mismatched IDs, malformed timestamps or naive datetimes raise ValueError. Accepted events append event_id and set status; do not use current system time.",
+    "intrinsic_difficulty": "An equality-boundary deadline expressed with a different UTC offset can be incorrectly rejected or a terminal dispute reopened.",
+    "adversarial_probe": "Test equivalent instants, exactly-on-deadline submission, replay after terminal resolution and invalid naive timestamps.",
+    "pilot_priority": "LOWER_PRIORITY",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T10",
+    "slug": "inbox-outbox-atomicity",
+    "title": "Atomic inbox/outbox processing",
+    "why": "A service must not commit a balance change without a corresponding durable outgoing event, nor process the same incoming event twice.",
+    "contract": "Implement `setup(conn)`, `apply_event(conn,event_id:str,account_id:str,delta_cents:int)->dict`, `get_pending(conn)->list[dict]`, and `mark_published(conn,event_id:str)->None`. setup creates accounts(account_id TEXT PRIMARY KEY,balance_cents INTEGER), inbox(event_id TEXT PRIMARY KEY,account_id TEXT,delta_cents INTEGER,balance_after_cents INTEGER), outbox(event_id TEXT PRIMARY KEY,topic TEXT,payload TEXT,published INTEGER). Tests seed accounts. An apply_event requires nonempty event_id/account_id and a nonzero int delta_cents, bool invalid. Use ONE SQLite transaction for inbox dedupe, checking an existing account, preventing negative resulting balance, changing balance, inserting inbox, and inserting outbox. A duplicate event_id with identical account/delta returns its recorded result with no second change; conflicting replay raises ValueError. Return exactly {\"event_id\":id,\"account_id\":id,\"balance_after_cents\":int}. Outbox topic is `account.changed`, published=0, and payload is deterministic JSON with sorted keys and fields event_id, account_id, delta_cents, balance_after_cents. `get_pending` returns a list sorted by event_id, each {\"event_id\":id,\"topic\":str,\"payload\":dict} (decoded JSON). `mark_published` marks an existing outgoing event published=1; repeat is a no-op; unknown event_id raises ValueError. A failure during ANY database write must roll back the entire apply_event transaction. Do not publish to an external service; only manage the durable outbox. Independent SQLite connections may compete; use BEGIN IMMEDIATE.",
+    "intrinsic_difficulty": "An account update may commit while its outgoing event fails, producing silent divergence; dedupe must share that transaction.",
+    "adversarial_probe": "Inject an outbox write failure after the balance/inbox write; verify full rollback and replay consistency.",
+    "pilot_priority": "SECOND_WAVE",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  }
+]

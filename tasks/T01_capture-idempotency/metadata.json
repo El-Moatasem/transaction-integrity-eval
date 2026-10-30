@@ -1,0 +1,11 @@
+{
+  "id": "T01",
+  "slug": "capture-idempotency",
+  "title": "Idempotent payment capture",
+  "why": "Retries and concurrent requests must never charge a customer twice or silently reuse a key for a different payment.",
+  "contract": "Implement `setup(conn)` and `capture(conn, key: str, account_id: str, amount_cents: int) -> dict` in `service.py` using Python 3.11 and SQLite. `setup` creates accounts(account_id TEXT PRIMARY KEY, balance_cents INTEGER NOT NULL) and captures(key TEXT PRIMARY KEY, account_id TEXT, amount_cents INTEGER, receipt_id TEXT); it must be safe to call repeatedly. Tests seed accounts after setup. On a new capture: key and account_id must be nonempty strings; amount_cents must be a positive int, not bool; account must exist and have sufficient balance. Atomically subtract amount and store a receipt with ID `cap_{key}`. Return exactly {\"receipt_id\": ..., \"account_id\": ..., \"amount_cents\": ..., \"status\": \"captured\"}. A repeat with same key, account and amount returns that receipt without a second debit. A key reused with different account or amount raises ValueError and makes no changes. Any invalid input or insufficient funds raises ValueError with no partial changes. Independent SQLite connections may attempt the same capture concurrently; serialize correctly, e.g. BEGIN IMMEDIATE. Do not depend on external services or in-memory global state.",
+  "intrinsic_difficulty": "An idempotency record must be committed with its debit; a failure after debiting but before writing the receipt must not lose money.",
+  "adversarial_probe": "Inject failure on receipt insertion after balance update; verify full rollback and safe replay on a fresh connection.",
+  "pilot_priority": "PILOT",
+  "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+}

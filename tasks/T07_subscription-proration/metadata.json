@@ -1,0 +1,11 @@
+{
+  "id": "T07",
+  "slug": "subscription-proration",
+  "title": "UTC-aware subscription proration",
+  "why": "Billing changes during a period must account for exact elapsed time, timezone offsets, and well-defined half-open boundaries.",
+  "contract": "Implement `prorate(period_start: str, period_end: str, effective_at: str, old_cents: int, new_cents: int) -> dict`. Times are ISO 8601 strings WITH timezone offsets or Z; parse and compare as UTC instants. Period is half-open [period_start,period_end); effective_at can equal either endpoint. All three datetimes must be second-precision (microseconds zero); period_end must be strictly later than period_start. Both rate values must be nonnegative int cents and not bool. Compute exact total_seconds and remaining_seconds. The full-period charge equals `old_cents * elapsed_seconds / total_seconds + new_cents * remaining_seconds / total_seconds`, rounded ONCE to the nearest integer cent using ROUND_HALF_EVEN (not the sum of separately rounded components). Return exactly {\"charge_cents\": int, \"total_seconds\": int,\"remaining_seconds\": int}. Invalid inputs raise ValueError. Real seconds elapsed, not calendar day counts, determine proration; do not use the local machine timezone.",
+  "intrinsic_difficulty": "Billing changes near a timezone transition can be mispriced when elapsed days replace elapsed UTC seconds or components round separately.",
+  "adversarial_probe": "Use fixed aware instants spanning offset changes and an exact tie that must round only once.",
+  "pilot_priority": "LOWER_PRIORITY",
+  "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+}

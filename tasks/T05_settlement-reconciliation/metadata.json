@@ -1,0 +1,11 @@
+{
+  "id": "T05",
+  "slug": "settlement-reconciliation",
+  "title": "Settlement reconciliation with duplicates",
+  "why": "Duplicate or missing settlement records can silently hide financial differences unless both sources are reconciled as multisets.",
+  "contract": "Implement `reconcile(ledger: list[dict], settlement: list[dict])->dict` in service.py. Ledger rows: {\"transaction_id\":str,\"status\":\"settled\"|\"pending\",\"gross_cents\":int,\"fee_cents\":int}. Settlement rows: {\"transaction_id\":str,\"net_cents\":int}. IDs are nonempty strings and values are nonnegative ints (inputs otherwise valid). For repeated IDs in either source, the FIRST occurrence is authoritative; report each duplicated ID once as {\"source\":\"ledger\"|\"settlement\",\"transaction_id\":id}, sorted by source then ID. Only unique ledger IDs with status settled contribute expected net = gross_cents-fee_cents (data guarantees gross >= fee). Missing is sorted settled ledger IDs with no settlement record. Unexpected is sorted settlement IDs whose ledger ID is missing or pending. A mismatch exists only when a settled ledger ID has a settlement record and differing net_cents; output {\"transaction_id\":id,\"expected_cents\":int,\"received_cents\":int} sorted by ID. `expected_total_cents` sums first-occurrence settled ledger nets. `received_total_cents` sums first-occurrence settlement amounts, INCLUDING unexpected records. Output exact keys: duplicates (list), missing (list[str]), unexpected (list[str]), amount_mismatches (list[dict]), expected_total_cents (int), received_total_cents (int). Do not mutate inputs; use only standard library.",
+  "intrinsic_difficulty": "Reconciling duplicated identifiers using a plain set loses which row was authoritative and can hide net differences.",
+  "adversarial_probe": "Combine same-ID duplicates, pending ledger entries, missing settlements and mismatched fees with totals.",
+  "pilot_priority": "SECOND_WAVE",
+  "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+}

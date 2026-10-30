@@ -1,0 +1,11 @@
+{
+  "id": "T02",
+  "slug": "refund-ceiling",
+  "title": "Partial refund ceiling and replay",
+  "why": "Refunds may arrive concurrently and in installments; the sum must never exceed a captured payment.",
+  "contract": "Implement `setup(conn)` and `refund(conn, capture_id: str, refund_key: str, amount_cents: int) -> dict` in service.py. `setup` creates captures(capture_id TEXT PRIMARY KEY, account_id TEXT, amount_cents INTEGER), balances(account_id TEXT PRIMARY KEY, available_cents INTEGER), refunds(refund_key TEXT PRIMARY KEY,capture_id TEXT,amount_cents INTEGER,receipt_id TEXT). Tests seed valid captures and balances. New refund must be positive integer cents (bool invalid), existing capture and balance, and must not exceed the captured amount when added to all earlier refunds for the same capture. Atomically add refund amount to available_cents and persist the refund receipt `ref_{refund_key}`. Same refund key with identical capture/amount replays without changes; changed payload raises ValueError. Return exactly {\"receipt_id\": ...,\"capture_id\": ...,\"amount_cents\": ...,\"status\":\"refunded\"}. Invalid attempts leave database unchanged. Independent connections may race; use BEGIN IMMEDIATE or equivalent.",
+  "intrinsic_difficulty": "Two individually valid refunds may jointly exceed the original charge; a failure between balance credit and refund record must not create free money.",
+  "adversarial_probe": "Inject failure after balance update and before refund insertion; verify rollback plus cumulative ceiling under contention.",
+  "pilot_priority": "PILOT",
+  "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+}
