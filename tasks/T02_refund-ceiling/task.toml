@@ -1,0 +1,24 @@
+schema_version = "1.4"
+
+[task]
+name = "transaction-integrity/t02-refund-ceiling"
+version = "0.2.0"
+description = "T02: Partial refund ceiling and replay"
+keywords = ["python", "sqlite", "payments", "pytest", "transaction-integrity"]
+
+[metadata]
+difficulty = "hard"
+category = "programming"
+tags = ["coding-agent", "financial-integrity", "offline", "python"]
+
+[agent]
+timeout_sec = 900.0
+
+[verifier]
+timeout_sec = 120.0
+
+[environment]
+cpus = 2
+memory_mb = 2048
+storage_mb = 2048
+network_mode = "public"
