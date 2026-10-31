@@ -1,0 +1,83 @@
+TRANSACTION INTEGRITY EVAL V2 — SETUP & EXECUTION
+================================================
+Prepared: 2026-10-31
+Status: 10 candidate tasks, local Oracle-style reference/mutant controls pass.
+Harbor + Docker end-to-end has NOT been run in the build environment.
+
+A. EXTRACT + LOCAL INSTALL
+-------------------------
+mkdir transaction-integrity-eval
+unzip transaction-integrity-eval-v2-codebase.zip -d transaction-integrity-eval
+cd transaction-integrity-eval
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python scripts/preflight.py
+python run_eval.py validate
+# Expect 10 PASS lines. T02 alternate reference is also independently tested.
+
+B. HARBOR INSTALL (separate Python 3.12+ CLI environment)
+---------------------------------------------------------
+Install Docker Desktop on macOS or Docker Engine on Linux and start it.
+Install uv if needed: https://docs.astral.sh/uv/getting-started/installation/
+uv tool install harbor
+harbor --version
+docker info
+harbor run --help
+Current upstream: https://github.com/harbor-framework/harbor
+
+C. HARBOR VALIDATION (needs working Docker)
+------------------------------------------
+harbor run -p tasks/T01_capture-idempotency -a oracle
+harbor run -p tasks/T01_capture-idempotency -a nop
+harbor run -p tasks/T02_refund-ceiling -a oracle
+harbor run -p tasks/T02_refund-ceiling -a nop
+# Repeat for all ten task directories; Oracle target reward=1, nop target=0.
+# Check actual logs/trial outputs, not only CLI exit status.
+
+D. REAL FRONTIER AGENT TRIALS
+-----------------------------
+# The exact provider/model ID and credentials depend on your provider.
+harbor run -p tasks/T02_refund-ceiling -a mini-swe-agent -m '<provider/exact-model-id>'
+# Repeat 3-5 times per frozen task/model; start with a small pilot first.
+# To compare models, keep the SAME agent, task version, allowed tools, timeouts and grader.
+# Use other agents (claude-code, codex) as separate reported configurations.
+# Retain raw Harbor trajectories and logs; do not report runs that have not occurred.
+
+E. LOCAL DIAGNOSTIC FALLBACK (not the formal harness)
+----------------------------------------------------
+python run_eval.py prepare --task T02 --output /tmp/txn-T02-first-trial
+# Point your coding agent ONLY at that isolated directory and pass INSTRUCTION.md.
+python run_eval.py grade --task T02 \
+  --workspace /tmp/txn-T02-first-trial \
+  --output /tmp/txn-T02-first-grade.json
+# Record only actual transcripts and measured settings/costs using run_eval.py record.
+python run_eval.py summary
+
+F. OUTCOME-BASED GRADING RULES
+-----------------------------
+- Don't require a specific use of BEGIN IMMEDIATE, a specific SQL query, or exact implementation style.
+- T02 includes an independent deferred-transaction + conditional-SQL reference that passes the base tests.
+- Bounded deterministic multi-connection concurrency grading for T01/T02/T10 is still a backlog item.
+- Concurrency lock timeouts are allowed only if the spec permits them AND no partial financial state remains.
+- SQLite is a reproducible local backend, not a claim to replicate all PostgreSQL locking semantics.
+- Harbor Docker builds must hide solutions, mutants and tests during agent execution.
+
+G. MICRO1 SUBMISSION REQUIREMENTS
+---------------------------------
+- ONE ZIP <= 50 MB, README at ZIP root, 5-min-or-less publicly accessible video link,
+  and short description in the event submission form.
+- Include real model IDs, run dates, costs, settings, actual scores and representative transcripts.
+- Explain failures observed in model outputs, not hypothetical failures.
+- Disclose any reused prior work and AI-tool assistance; do not include proprietary Askable code.
+- The latest complete upload counts. Deadline: 2026-11-09 at 05:15 GMT (07:15 Cairo).
+
+H. REMAINING GATES TO COMPETITION-READY
+--------------------------------------
+1) Run Harbor oracle/nop on Docker.
+2) Calibrate deterministic concurrency tests and additional mutant cases.
+3) Freeze spec/graders, run pilot and inspect every failed trial.
+4) Choose 6-8 final tasks based on clearly disclosed criteria.
+5) Re-run formal comparable model trials and create full evidence report + video.
+
+None of the supplied project files should be interpreted as real frontier-agent results.
