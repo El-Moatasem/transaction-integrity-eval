@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:45:54.898725+00:00",
+  "task": "T01_capture-idempotency",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T01-he60v41m/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "....                                                                     [100%]\n4 passed in 1.65s\n",
+  "code_sha256": "0d916ee3800d627a192042c6c94f31d3d72ba088edcda93f36670e6943a367b6",
+  "instruction_sha256": "1511e00ede8355118f4de5fe69444e0e4557e885d7c958a5d3495f2a4353b68d",
+  "grader_sha256": "80adc11110ca37ad8f33a6a67dbd1810289eee52172b6b315588451ed32dfda5"
+}

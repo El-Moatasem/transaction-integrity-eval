@@ -15,7 +15,7 @@ from run_eval import grade_code,select
 def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('--rounds',type=int,default=3)
-    ap.add_argument('--tasks',nargs='+',default=['T01','T02','T10'])
+    ap.add_argument('--tasks',nargs='+',default=['T01','T02','T10','T11','T12','T13'])
     args=ap.parse_args()
     if not 1 <= args.rounds <= 30:
         ap.error('--rounds must be between 1 and 30')

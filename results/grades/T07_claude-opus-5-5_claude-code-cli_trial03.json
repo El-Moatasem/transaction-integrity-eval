@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:28:24.293354+00:00",
+  "task": "T07_subscription-proration",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T07-_8hh4gvn/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "....                                                                     [100%]\n4 passed in 0.01s\n",
+  "code_sha256": "1c85692411a58a10475eca7a7c97e6734d1b2bfbe4bb1277e4e09a026d1f5b75",
+  "instruction_sha256": "f667b2ac67677ad2039917d0dca4726b51ef25d23a338cdbb73b1d7df15f294c",
+  "grader_sha256": "74e26c3ab8c0135492f8baf33bac5599e0020956daa5bd90d4d6e68a4ab20b17"
+}

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Structural and Harbor-shaped task controls; not a substitute for Docker trials."""
+import json
 import pathlib
 import sys
 import tomllib
 root = pathlib.Path(__file__).resolve().parents[1]
 errors=[]
 tasks = sorted(t for t in (root/'tasks').glob('T*') if t.is_dir())
-if len(tasks) != 10:
-    errors.append(f'expected 10 candidate tasks, found {len(tasks)}')
+catalog = json.loads((root/'task_catalog.json').read_text())
+if len(tasks) != len(catalog):
+    errors.append(f'expected {len(catalog)} candidate tasks (task_catalog.json entries), found {len(tasks)}')
 for t in tasks:
     try:
         conf=tomllib.loads((t/'task.toml').read_text())

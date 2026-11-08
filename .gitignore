@@ -8,3 +8,4 @@ __pycache__/
 workspaces/
 trial-private/
 .DS_Store
+results/.trials.lock

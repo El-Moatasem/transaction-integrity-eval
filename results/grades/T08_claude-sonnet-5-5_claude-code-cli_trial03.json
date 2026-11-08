@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:48:22.743946+00:00",
+  "task": "T08_marketplace-splits",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T08-2t0652jr/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "....                                                                     [100%]\n4 passed in 0.02s\n",
+  "code_sha256": "b8285f81dbeb7942a35562328453fb90c3c79cfe0bde78b4fc9628af5a9f64ed",
+  "instruction_sha256": "9f39d08d840d5f9f7146b445b553673d53fa1842f481fcb943da5b4214bcdaf2",
+  "grader_sha256": "0602037ed1e7247f192c59939f5f70c4ad08b77145a7726012f2e2537f3f7702"
+}
