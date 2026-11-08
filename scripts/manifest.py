@@ -10,6 +10,8 @@ import hashlib
 from pathlib import Path
 import sys
 
+from submission_policy import is_repository_only
+
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / 'manifests' / 'SOURCE.sha256'
 EXCLUDE_DIRS = {'.git', '.venv', '.pytest_cache', '__pycache__', 'results', 'transcripts', 'jobs', 'workspaces', 'trial-private', '.tmp'}
@@ -21,7 +23,7 @@ def sources():
         if not p.is_file():
             continue
         rel = p.relative_to(ROOT)
-        if any(part in EXCLUDE_DIRS for part in rel.parts) or p == TARGET:
+        if any(part in EXCLUDE_DIRS for part in rel.parts) or p == TARGET or is_repository_only(rel):
             continue
         if p.name in EXCLUDE_NAMES or p.name.endswith('.pyc'):
             continue

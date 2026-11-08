@@ -19,19 +19,8 @@ import sys
 SOURCE=pathlib.Path(__file__).resolve().parents[1]
 EXCLUDE={'.git','.venv','__pycache__','.pytest_cache','results','transcripts','jobs','workspaces','trial-private','.tmp'}
 EXCLUDED_FILES={'.env','.DS_Store'}
-OBSOLETE=[
-    'MANIFEST.sha256','task_catalog.json','LOCAL_REPLACEMENT_GUIDE.md',
-    'docs/APPLICATION_FLOW.md','docs/PROBLEMS.md',
-    'docs/CANDIDATE_SHA256SUMS.txt','docs/DEMO_VIDEO_OUTLINE.md',
-    'docs/EXPERIMENT_RECORD_TEMPLATE.md','docs/GIT_FLOW_AND_COMMITS.txt',
-    'docs/GRADER_HARDENING.md','docs/HARBOR_SETUP.md','docs/PILOT_AND_SELECTION.md',
-    'docs/PR_Descriptions.txt','docs/PR_TEMPLATES','docs/SETUP_EXECUTION.txt',
-    'docs/SUBMISSION_CHECKLIST.md','docs/TASK_RESEARCH_RATIONALE.md',
-    'docs/VALIDATION_AND_FAIRNESS.md','docs/alternative_solutions',
-]
-for t in sorted((SOURCE/'tasks').glob('T*')):
-    for suffix in ('README.md','metadata.json','tests/stress_test_service.py'):
-        OBSOLETE.append(f'tasks/{t.name}/{suffix}')
+# Non-destructive synchronization: never remove pre-existing docs, task READMEs,
+# metadata JSON, alternative solutions, or historical project files.
 
 
 def main():
@@ -60,9 +49,7 @@ def main():
             continue
         if path.name.startswith('.env') and path.name!='.env.example':continue
         files.append((path,rel))
-    old=[x for x in OBSOLETE if (target/x).exists()]
-    print(f'Plan: copy/replace {len(files)} source files; remove {len(old)} obsolete files or folders')
-    for item in old:print('  REMOVE',item)
+    print(f'Plan: copy/replace {len(files)} source files; delete 0 existing files')
     if not args.apply:
         print('Dry-run only. Re-run with --apply to save backup and modify local checkout.')
         return 0
@@ -74,15 +61,6 @@ def main():
             if dest.read_bytes()==(SOURCE/rel).read_bytes():continue
             saved=backup/rel;saved.parent.mkdir(parents=True,exist_ok=True)
             shutil.copy2(dest,saved)
-    for item in old:
-        dest=target/item
-        saved=backup/item;saved.parent.mkdir(parents=True,exist_ok=True)
-        if dest.is_dir():shutil.copytree(dest,saved)
-        else:shutil.copy2(dest,saved)
-    for item in old:
-        dest=target/item
-        if dest.is_dir():shutil.rmtree(dest)
-        elif dest.exists():dest.unlink()
     for source,rel in files:
         dest=target/rel;dest.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(source,dest)

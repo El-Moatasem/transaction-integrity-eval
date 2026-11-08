@@ -13,6 +13,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_submission import check
+from submission_policy import is_repository_only
 
 IGNORED_DIRS = {'.git', '.venv', '.pytest_cache', '__pycache__', 'workspaces', 'trial-private', 'jobs', '.tmp'}
 IGNORED_NAMES = {'.DS_Store', 'LOCAL_REPLACEMENT_GUIDE.md'}
@@ -25,6 +26,10 @@ def collect():
         if not path.is_file():
             continue
         rel = path.relative_to(ROOT)
+        # Preserve historical metadata/workflow files in Git, but keep them out
+        # of the evaluated submission package and its source hash manifest.
+        if is_repository_only(rel):
+            continue
         if any(part in IGNORED_DIRS for part in rel.parts):
             continue
         if path.name in IGNORED_NAMES or path.name.endswith('.pyc'):
@@ -36,8 +41,6 @@ def collect():
                 raise ValueError(f'Forbidden results/transcripts artifact {rel}')
         if path.suffix.lower() in ('.key', '.pem', '.p12', '.pfx'):
             raise ValueError(f'Forbidden credential-like artifact {rel}')
-        if 'git_flow' in path.name.lower() or 'pr_to_' in path.name.lower():
-            raise ValueError(f'Git/PR TXT must be outside the package: {rel}')
         included.append((path, rel.as_posix()))
     return included
 

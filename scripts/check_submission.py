@@ -15,6 +15,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from run_eval import tasks
+sys.path.insert(0, str(ROOT / 'scripts'))
+from submission_policy import is_git_admin_document
 
 PLACEHOLDERS = (
     'VIDEO_URL_PENDING', 'RESULTS_PENDING', 'FAILURE_ANALYSIS_PENDING',
@@ -44,10 +46,11 @@ def result_rows():
 def check(strict=False):
     failures = []
     warnings = []
-    source_files = list((ROOT / 'docs').iterdir()) if (ROOT / 'docs').exists() else []
-    actual_docs = sorted(p.name for p in source_files if p.is_file())
-    if actual_docs != ['ARCHITECTURE.md', 'DOCUMENTATION.md']:
-        failures.append(f'docs/ should contain only ARCHITECTURE.md and DOCUMENTATION.md; got {actual_docs}')
+    # Additional technical documentation and historical notes are allowed.
+    # Require the two submission-oriented entry points without deleting others.
+    for name in ('ARCHITECTURE.md', 'DOCUMENTATION.md'):
+        if not (ROOT / 'docs' / name).is_file():
+            failures.append(f'missing required documentation: docs/{name}')
     expected_root = ('README.md', '.env.example', 'requirements.txt', 'run_eval.py')
     for name in expected_root:
         if not (ROOT / name).is_file():
@@ -62,13 +65,16 @@ def check(strict=False):
         from manifest import TARGET, manifest
         if TARGET.read_text() != manifest():
             failures.append('source manifest stale: regenerate with python scripts/manifest.py --write')
+    retained_workflow_docs = []
     for p in ROOT.rglob('*'):
         if not p.is_file() or any(x in p.parts for x in ('.git', '.venv', '__pycache__', 'results', 'transcripts')):
             continue
         if p.suffix.lower() in ('.pem', '.key', '.p12', '.pfx') or p.name == '.env':
             failures.append(f'possible private key or environment file: {p.relative_to(ROOT)}')
-        if 'git_flow' in p.name.lower() or 'pr_to_' in p.name.lower() or 'pr_descriptions' in p.name.lower():
-            failures.append(f'Git/PR instruction file must remain external: {p.relative_to(ROOT)}')
+        if is_git_admin_document(p.relative_to(ROOT)):
+            retained_workflow_docs.append(p.relative_to(ROOT))
+    if retained_workflow_docs:
+        warnings.append(f'{len(retained_workflow_docs)} historical Git/PR documents are retained locally and excluded from the submission ZIP')
     readme = (ROOT / 'README.md').read_text() if (ROOT / 'README.md').is_file() else ''
     for marker in PLACEHOLDERS:
         if marker in readme:
