@@ -65,6 +65,12 @@ INVARIANTS = {
             'one outbox event carrying the committed balance',
     },
 }
+# T11-T13 are instruction-only ablations of T01/T02/T10: identical tests,
+# references and wrong fixes, so they share the same invariant maps and variants.
+ABLATIONS = {'T11': 'T01', 'T12': 'T02', 'T13': 'T10'}
+for _ablation, _source in ABLATIONS.items():
+    INVARIANTS[_ablation] = INVARIANTS[_source]
+RACE_TASKS = ('T01', 'T02', 'T10', 'T11', 'T12', 'T13')
 CONCURRENCY_TESTS = {'test_competing_identical_capture_across_connections',
                      'test_competing_refunds_cannot_overrefund',
                      'test_competing_debits_preserve_balance_inbox_and_outbox'}
@@ -183,21 +189,23 @@ def drop_begin_use_cursor(s):
 
 
 def main():
-    good = check('T02', ROOT / 'audit_variants/T02_atomic_conditional_update.py', 'good',
-                 'independent atomic conditional-update approach accepted')
-    for tid in ('T01', 'T02', 'T10'):
+    good = True
+    for tid in ('T02', 'T12'):
+        good &= check(tid, ROOT / 'audit_variants/T02_atomic_conditional_update.py', 'good',
+                      'independent atomic conditional-update approach accepted')
+    for tid in RACE_TASKS:
         good &= check(tid, select(tid) / 'solution/service.py', 'good', 'unmodified reference accepted')
 
     # A deferred BEGIN is not inherently incorrect. A SQLite lock timeout is
     # permitted by these contracts when changes roll back and a retry is safe.
-    for tid in ('T01', 'T02', 'T10'):
+    for tid in RACE_TASKS:
         good &= variant(tid, replace("conn.execute('BEGIN IMMEDIATE')", "conn.execute('BEGIN')"),
                         'good', 'valid deferred transaction accepted')
 
     # Candidate negative controls: delete the transaction start entirely
     # (Variant A), and additionally issue SQL through conn.cursor().execute()
     # (Variant B). Survival would be documented, not forced to fail.
-    for tid in ('T01', 'T02', 'T10'):
+    for tid in RACE_TASKS:
         good &= variant(tid, drop_begin, 'candidate',
                         'Variant A: BEGIN IMMEDIATE removed')
         good &= variant(tid, drop_begin_use_cursor, 'candidate',
@@ -212,10 +220,11 @@ def main():
 
     # Commit balance + inbox before writing the durable outbox event. A trigger
     # blocking outbox insertion must then expose the partial state.
-    good &= variant('T10', replace(
-        "conn.execute('INSERT INTO outbox VALUES(?,?,?,0)',(event_id,'account.changed',payload))",
-        "conn.commit()\n            conn.execute('INSERT INTO outbox VALUES(?,?,?,0)',(event_id,'account.changed',payload))"),
-        'negative', 'balance/inbox committed without outbox rejected')
+    for tid in ('T10', 'T13'):
+        good &= variant(tid, replace(
+            "conn.execute('INSERT INTO outbox VALUES(?,?,?,0)',(event_id,'account.changed',payload))",
+            "conn.commit()\n            conn.execute('INSERT INTO outbox VALUES(?,?,?,0)',(event_id,'account.changed',payload))"),
+            'negative', 'balance/inbox committed without outbox rejected')
 
     dest = ROOT / 'results' / 'mutation_audit.json'
     dest.parent.mkdir(parents=True, exist_ok=True)
