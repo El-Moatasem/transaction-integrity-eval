@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T18:42:04.598431+00:00",
+  "task": "T14_refund-write-paths",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T14-etakw23e/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": ".........                                                                [100%]\n9 passed in 6.51s\n",
+  "code_sha256": "6554b87f3499c43eed2c0482582c3349ed52f4ee56c1b290f0ce91e96ca88b23",
+  "instruction_sha256": "3e747a3a77bd74de65948b752e1e0de9f831358b7237bae0332cfeff0842a80a",
+  "grader_sha256": "41031d51fa2a7bb7a162a19cab983a5ae91a7e71df80248269eeb01dbe202236"
+}

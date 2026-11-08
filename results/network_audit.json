@@ -1170,6 +1170,306 @@
       "tool_calls_scanned": 3,
       "flagged": false,
       "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 2,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial02.jsonl",
+      "tool_calls_scanned": 2,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 1,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial01.jsonl",
+      "tool_calls_scanned": 6,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 1,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial01.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 2,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial02.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 3,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial03.jsonl",
+      "tool_calls_scanned": 6,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 3,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial03.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 1,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial01.jsonl",
+      "tool_calls_scanned": 5,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 2,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial02.jsonl",
+      "tool_calls_scanned": 4,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 3,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial03.jsonl",
+      "tool_calls_scanned": 5,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 5,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial05.jsonl",
+      "tool_calls_scanned": 2,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 6,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial06.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 4,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial04.jsonl",
+      "tool_calls_scanned": 7,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 8,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial08.jsonl",
+      "tool_calls_scanned": 4,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 7,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial07.jsonl",
+      "tool_calls_scanned": 6,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 9,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial09.jsonl",
+      "tool_calls_scanned": 4,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 4,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial04.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 5,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial05.jsonl",
+      "tool_calls_scanned": 2,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 6,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial06.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 7,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial07.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-opus-5-5",
+      "agent": "claude-code-cli",
+      "trial": 10,
+      "transcript_path": "transcripts/T14_claude-opus-5-5_claude-code-cli_trial10.jsonl",
+      "tool_calls_scanned": 6,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 8,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial08.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 9,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial09.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-sonnet-5-5",
+      "agent": "claude-code-cli",
+      "trial": 10,
+      "transcript_path": "transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial10.jsonl",
+      "tool_calls_scanned": 3,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 4,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial04.jsonl",
+      "tool_calls_scanned": 4,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 5,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial05.jsonl",
+      "tool_calls_scanned": 5,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 6,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial06.jsonl",
+      "tool_calls_scanned": 5,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 7,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial07.jsonl",
+      "tool_calls_scanned": 6,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 8,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial08.jsonl",
+      "tool_calls_scanned": 4,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 9,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial09.jsonl",
+      "tool_calls_scanned": 5,
+      "flagged": false,
+      "matches": []
+    },
+    {
+      "task": "T14_refund-write-paths",
+      "model_version": "claude-haiku-5-5",
+      "agent": "claude-code-cli",
+      "trial": 10,
+      "transcript_path": "transcripts/T14_claude-haiku-5-5_claude-code-cli_trial10.jsonl",
+      "tool_calls_scanned": 6,
+      "flagged": false,
+      "matches": []
     }
   ],
   "flagged_count": 0
