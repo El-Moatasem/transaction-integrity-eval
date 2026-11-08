@@ -10,7 +10,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.003,
+        "pause_seconds": 0.005,
         "release_timed_out": false
       }
     ],
@@ -30,7 +30,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.006,
         "release_timed_out": false
       }
     ],
@@ -50,7 +50,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.504,
+        "pause_seconds": 1.505,
         "release_timed_out": false
       }
     ],
@@ -70,7 +70,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.505,
+        "pause_seconds": 1.504,
         "release_timed_out": false
       }
     ],
@@ -90,7 +90,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.504,
+        "pause_seconds": 1.502,
         "release_timed_out": false
       }
     ],
@@ -110,7 +110,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.505,
+        "pause_seconds": 1.504,
         "release_timed_out": false
       }
     ],
@@ -130,7 +130,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.505,
+        "pause_seconds": 1.501,
         "release_timed_out": false
       }
     ],
@@ -150,7 +150,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.5,
+        "pause_seconds": 1.505,
         "release_timed_out": false
       }
     ],
@@ -170,7 +170,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.505,
+        "pause_seconds": 1.504,
         "release_timed_out": false
       }
     ],
@@ -187,26 +187,6 @@
     "race_runs": [
       {
         "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
-        "a_paused": true,
-        "b_finished_while_a_paused": false,
-        "b_started_while_a_paused": true,
-        "pause_seconds": 1.504,
-        "release_timed_out": false
-      }
-    ],
-    "race_exercised": true,
-    "failures": [],
-    "outcome": "ACCEPTED",
-    "ok": true
-  },
-  {
-    "task": "T10",
-    "label": "valid deferred transaction accepted",
-    "kind": "good",
-    "grader_exit": 0,
-    "race_runs": [
-      {
-        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
@@ -220,6 +200,26 @@
     "ok": true
   },
   {
+    "task": "T10",
+    "label": "valid deferred transaction accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.504,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
     "task": "T11",
     "label": "valid deferred transaction accepted",
     "kind": "good",
@@ -230,7 +230,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.505,
+        "pause_seconds": 1.503,
         "release_timed_out": false
       }
     ],
@@ -290,7 +290,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.005,
         "release_timed_out": false
       }
     ],
@@ -316,7 +316,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.007,
         "release_timed_out": false
       }
     ],
@@ -342,7 +342,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.003,
         "release_timed_out": false
       }
     ],
@@ -368,7 +368,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.003,
         "release_timed_out": false
       }
     ],
@@ -394,7 +394,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.004,
         "release_timed_out": false
       }
     ],
@@ -420,7 +420,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.004,
         "release_timed_out": false
       }
     ],
@@ -446,7 +446,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.003,
         "release_timed_out": false
       }
     ],
@@ -472,7 +472,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.003,
         "release_timed_out": false
       }
     ],
@@ -498,7 +498,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.003,
         "release_timed_out": false
       }
     ],
@@ -524,7 +524,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.007,
         "release_timed_out": false
       }
     ],
@@ -550,7 +550,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.004,
         "release_timed_out": false
       }
     ],
@@ -576,7 +576,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.003,
         "release_timed_out": false
       }
     ],
@@ -619,7 +619,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.503,
+        "pause_seconds": 1.504,
         "release_timed_out": false
       }
     ],
@@ -645,7 +645,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.505,
+        "pause_seconds": 1.504,
         "release_timed_out": false
       }
     ],
@@ -655,6 +655,159 @@
         "test": "test_failure_in_outbox_rolls_back_everything",
         "assertion": "assert 70 == 100",
         "invariant": "balance, inbox and outbox commit in one transaction"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T14",
+    "label": "unmodified reference accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.501,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE captures SET amount_cents=500 WHERE capture_id='c1'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.502,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.504,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE captures SET voided=1 WHERE capture_id='c1'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.505,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T14",
+    "label": "valid deferred transaction in every function accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.503,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE captures SET amount_cents=500 WHERE capture_id='c1'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.505,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.505,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE captures SET voided=1 WHERE capture_id='c1'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.505,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T14",
+    "label": "refund-only fix (adjust_capture and void_remaining unprotected) rejected",
+    "kind": "negative",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.504,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE captures SET amount_cents=500 WHERE capture_id='c1'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.003,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.5,
+        "release_timed_out": false
+      },
+      {
+        "a_pause_statement": "UPDATE captures SET voided=1 WHERE capture_id='c1'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.003,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_refund_paused_while_capture_is_adjusted",
+        "assertion": "AssertionError: committed refunds exceed the current captured amount",
+        "invariant": "committed refunds never exceed the current captured amount; credits match committed refund receipts, whichever function is paused before its write"
+      },
+      {
+        "test": "test_adjustment_paused_while_refund_commits",
+        "assertion": "AssertionError: committed refunds exceed the current captured amount",
+        "invariant": "committed refunds never exceed the current captured amount; credits match committed refund receipts, whichever function is paused before its write"
+      },
+      {
+        "test": "test_refund_paused_while_capture_is_voided",
+        "assertion": "AssertionError: a refund committed after the capture was voided",
+        "invariant": "no refund commits after a void: the refunded total reported by void_remaining stays the committed refund total, whichever function is paused before its write"
+      },
+      {
+        "test": "test_void_paused_while_refund_commits",
+        "assertion": "AssertionError: a refund committed after the capture was voided",
+        "invariant": "no refund commits after a void: the refunded total reported by void_remaining stays the committed refund total, whichever function is paused before its write"
       }
     ],
     "outcome": "REJECTED",
