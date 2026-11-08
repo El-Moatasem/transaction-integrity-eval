@@ -1,0 +1,341 @@
+[
+  {
+    "task": "T02",
+    "label": "independent atomic conditional-update approach accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "INSERT INTO refund_counters(capture_id,total_cents) SELECT capture_id,0 FROM captures WHERE capture_id='c1' ON CONFLICT(",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.001,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T01",
+    "label": "unmodified reference accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=balance_cents-300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.51,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T02",
+    "label": "unmodified reference accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.508,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T10",
+    "label": "unmodified reference accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.508,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T01",
+    "label": "valid deferred transaction accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=balance_cents-300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.508,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T02",
+    "label": "valid deferred transaction accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.505,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T10",
+    "label": "valid deferred transaction accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.508,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T01",
+    "label": "Variant A: BEGIN IMMEDIATE removed",
+    "kind": "candidate",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=balance_cents-300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.001,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_competing_identical_capture_across_connections",
+        "assertion": "AssertionError: unexpected competing capture error: IntegrityError('UNIQUE constraint failed: captures.key')",
+        "invariant": "a concurrent identical capture returns the original receipt (or a lock-timeout OperationalError), never IntegrityError; exactly one debit and one receipt"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T01",
+    "label": "Variant B: BEGIN IMMEDIATE removed, SQL via conn.cursor().execute()",
+    "kind": "candidate",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=balance_cents-300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.002,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_competing_identical_capture_across_connections",
+        "assertion": "AssertionError: unexpected competing capture error: IntegrityError('UNIQUE constraint failed: captures.key')",
+        "invariant": "a concurrent identical capture returns the original receipt (or a lock-timeout OperationalError), never IntegrityError; exactly one debit and one receipt"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T02",
+    "label": "Variant A: BEGIN IMMEDIATE removed",
+    "kind": "candidate",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.001,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_competing_refunds_cannot_overrefund",
+        "assertion": "AssertionError: committed refund ceiling exceeded",
+        "invariant": "committed refunds for a capture never exceed the captured amount under concurrency; credited balance equals committed refunds"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T02",
+    "label": "Variant B: BEGIN IMMEDIATE removed, SQL via conn.cursor().execute()",
+    "kind": "candidate",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.001,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_competing_refunds_cannot_overrefund",
+        "assertion": "AssertionError: committed refund ceiling exceeded",
+        "invariant": "committed refunds for a capture never exceed the captured amount under concurrency; credited balance equals committed refunds"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T10",
+    "label": "Variant A: BEGIN IMMEDIATE removed",
+    "kind": "candidate",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.001,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_competing_debits_preserve_balance_inbox_and_outbox",
+        "assertion": "AssertionError: assert (2 <= 1)",
+        "invariant": "concurrent debits never overdraw the account; every committed inbox row has exactly one outbox event carrying the committed balance"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T10",
+    "label": "Variant B: BEGIN IMMEDIATE removed, SQL via conn.cursor().execute()",
+    "kind": "candidate",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": true,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 0.001,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_competing_debits_preserve_balance_inbox_and_outbox",
+        "assertion": "AssertionError: assert (2 <= 1)",
+        "invariant": "concurrent debits never overdraw the account; every committed inbox row has exactly one outbox event carrying the committed balance"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T03",
+    "label": "partially committed journal rejected",
+    "kind": "negative",
+    "grader_exit": 1,
+    "race_runs": [],
+    "race_exercised": false,
+    "failures": [
+      {
+        "test": "test_second_ledger_entry_failure_rolls_back_transfer",
+        "assertion": "assert 1 == 0",
+        "invariant": "a transfer posts both journal entries or none"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  },
+  {
+    "task": "T10",
+    "label": "balance/inbox committed without outbox rejected",
+    "kind": "negative",
+    "grader_exit": 1,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.51,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [
+      {
+        "test": "test_failure_in_outbox_rolls_back_everything",
+        "assertion": "assert 70 == 100",
+        "invariant": "balance, inbox and outbox commit in one transaction"
+      }
+    ],
+    "outcome": "REJECTED",
+    "ok": true
+  }
+]
