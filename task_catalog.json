@@ -141,5 +141,16 @@
     "adversarial_probe": "Inject an outbox write failure after the balance/inbox write; verify full rollback and replay consistency.",
     "pilot_priority": "SECOND_WAVE",
     "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
+  },
+  {
+    "id": "T14",
+    "slug": "refund-write-paths",
+    "title": "Refund write paths",
+    "why": "Refunds, capture adjustments and voids all change what may still be refunded; every write path must keep committed refunds within the current captured amount.",
+    "contract": "Implement `setup(conn)`, `refund(conn, capture_id, refund_key, amount_cents) -> dict` (T02 semantics, plus voided captures reject new refunds), `adjust_capture(conn, capture_id, new_amount_cents) -> dict` (lowers amount_cents; never below the committed refund total) and `void_remaining(conn, capture_id) -> dict` (sets voided=1 and reports refunded_cents/voided_cents). Invariants: committed refunds never exceed the current captured amount; no refund commits after a void; credits match receipts. See instruction.md for the authoritative contract.",
+    "intrinsic_difficulty": "The bug report points at refunds, but adjust_capture and void_remaining make the same check-then-write decision; fixing only refund() leaves two write paths that can still break the ceiling or admit a refund after a void.",
+    "adversarial_probe": "Pause each function before its first write while the competing function commits on another connection, in both orders for refund/adjust_capture and refund/void_remaining.",
+    "pilot_priority": "SECOND_WAVE",
+    "evidence_status": "NOT_TESTED_ON_FRONTIER_MODELS"
   }
 ]
