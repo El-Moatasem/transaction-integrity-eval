@@ -31,11 +31,17 @@ ISOLATION LIMITS (read before reporting results):
     pip install or this repository's path. A flag means "needs human review",
     not proof of contamination; absence of a flag is not proof of isolation,
     because command-string scanning cannot detect every network or file access.
+  * A result event with subtype `error_max_turns` is a genuine model attempt
+    that exhausted its turn budget: it is graded normally and recorded with
+    settings.turn_budget_exhausted=true. If it cannot be graded, its evidence
+    is kept under results/incomplete/ and results/incomplete_attempts.jsonl
+    without any score, and that trial slot is not retried on resume.
   * Recording is serialized by a process-local threading.Lock in this runner
     and by an exclusive POSIX file lock inside `run_eval.py record`. On
     platforms without fcntl (Windows), do not run two batches at once.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -50,6 +56,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_EVAL = [sys.executable, str(ROOT / 'run_eval.py')]
+sys.path.insert(0, str(ROOT))
+from run_eval import records_lock  # noqa: E402  (cross-process lock for result files)
 RESULTS = ROOT / 'results'
 AGENT = 'claude-code-cli'
 PROMPT = ('Your task is described in INSTRUCTION.md in the current directory. '
@@ -84,15 +92,39 @@ def claude_version():
 
 
 def recorded():
-    path = RESULTS / 'trials.jsonl'
-    if not path.exists():
-        return set()
+    """Keys of attempts already recorded as graded trials OR incomplete attempts.
+
+    Incomplete attempts occupy their trial slot so a resumed batch never
+    silently replaces a genuine (ungradable) attempt with a fresh one.
+    """
     out = set()
-    for line in path.read_text().splitlines():
-        if line.strip():
-            r = json.loads(line)
-            out.add((r['task'][:3], r['model_version'], r.get('agent'), r['trial']))
+    for path in (RESULTS / 'trials.jsonl', RESULTS / 'incomplete_attempts.jsonl'):
+        if not path.exists():
+            continue
+        for line in path.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                out.add((r['task'][:3], r['model_version'], r.get('agent'), r['trial']))
     return out
+
+
+def record_incomplete(task, model, trial, transcript, ws, runtime, cost, settings, reason):
+    """Preserve a genuine attempt that could not be graded; never assigns a score."""
+    safe_model = ''.join(c if c.isalnum() or c in '-_.' else '_' for c in model)
+    name = f'{task}_{safe_model}_{AGENT}_trial{trial:02d}'
+    dest = RESULTS / 'incomplete' / name
+    if dest.exists():
+        raise RuntimeError(f'incomplete-attempt evidence already exists: {dest}')
+    dest.mkdir(parents=True)
+    shutil.copy2(transcript, dest / 'transcript.jsonl')
+    if (ws / 'service.py').is_file():
+        shutil.copy2(ws / 'service.py', dest / 'final_service.py')
+    row = {'task': task, 'model_version': model, 'agent': AGENT, 'trial': trial,
+           'status': 'incomplete', 'reason': reason, 'runtime_seconds': runtime, 'cost_usd': cost,
+           'settings': settings, 'evidence_dir': dest.relative_to(ROOT).as_posix(),
+           'transcript_sha256': hashlib.sha256((dest / 'transcript.jsonl').read_bytes()).hexdigest()}
+    with (RESULTS / 'incomplete_attempts.jsonl').open('a') as fh:
+        fh.write(json.dumps(row, sort_keys=True) + '\n')
 
 
 def events(transcript):
@@ -213,27 +245,42 @@ def one_trial(model, task, trial, a, cli_version):
     # event, error result): do NOT record as a model failure.
     if result is None:
         return infra(tag, f'exit={exit_code}, no result event', transcript)
-    if exit_code != 0 or result.get('is_error'):
+    # A genuine result event reporting turn-budget exhaustion is a model
+    # attempt, not infrastructure. Checked BEFORE the generic is_error/exit
+    # classification; its outcome comes from the normal grader, never the subtype.
+    budget_exhausted = result.get('subtype') == 'error_max_turns'
+    if not budget_exhausted and (exit_code != 0 or result.get('is_error')):
         hint = INFRA_HINTS.search(transcript.read_text(errors='replace'))
         return infra(tag, f"exit={exit_code}, subtype={result.get('subtype')}, is_error={result.get('is_error')}"
                           + (f', matched {hint.group(0)!r}' if hint else ''), transcript)
-    grade_json = logs / 'grade.json'
-    subprocess.run(RUN_EVAL + ['grade', '--task', task, '--workspace', str(ws), '--output', str(grade_json)],
-                   capture_output=True)
-    if not grade_json.exists():
-        return infra(tag, 'grading produced no report', transcript)
-    grade = json.loads(grade_json.read_text())
-    if grade.get('exit_code') not in (0, 1):
-        return infra(tag, f"grader infrastructure error (exit {grade.get('exit_code')})", transcript)
-    passed = grade.get('passed')
-    shutil.copy2(ws / 'service.py', logs / 'final_service.py')
     settings = {'max_turns': a.max_turns, 'permission_mode': 'acceptEdits',
                 'allowed_tools': ALLOWED, 'disallowed_tools': DISALLOWED,
                 'strict_mcp_config': True, 'bare': a.bare, 'cli_version': cli_version,
                 'requested_model': model, 'reported_model': reported_model,
                 'temperature': 'CLI default (not configurable)',
                 'num_turns': result.get('num_turns'), 'stop_subtype': result.get('subtype'),
+                'turn_budget_exhausted': budget_exhausted,
                 'cli_exit_code': exit_code, 'network_isolation': 'none (Bash can reach the network)'}
+    grade_json = logs / 'grade.json'
+    subprocess.run(RUN_EVAL + ['grade', '--task', task, '--workspace', str(ws), '--output', str(grade_json)],
+                   capture_output=True)
+    grade = json.loads(grade_json.read_text()) if grade_json.exists() else {}
+    if grade.get('exit_code') not in (0, 1):
+        reason = ('grading produced no report' if not grade else
+                  f"grader infrastructure error (exit {grade.get('exit_code')})")
+        if not budget_exhausted:
+            return infra(tag, reason, transcript)
+        # Genuine budget-exhausted attempt that cannot be graded: keep the
+        # evidence as an incomplete attempt; no score is assigned.
+        with RECORD_LOCK, records_lock():
+            try:
+                record_incomplete(task, model, trial, transcript, ws, runtime, cost, settings, reason)
+            except Exception as ex:
+                return infra(tag, f'{reason}; could not store incomplete attempt: {ex}', transcript)
+        print(f'[INCOMPLETE - turn budget exhausted, ungradable] {tag}: {reason}', flush=True)
+        return tag, 'incomplete'
+    passed = grade.get('passed')
+    shutil.copy2(ws / 'service.py', logs / 'final_service.py')
     safe_model = ''.join(c if c.isalnum() or c in '-_.' else '_' for c in model)
     code_dst = RESULTS / 'final_code' / f'{task}_{safe_model}_trial{trial:02d}.py'
     # One complete record operation at a time: duplicate check, evidence copy
@@ -253,7 +300,8 @@ def one_trial(model, task, trial, a, cli_version):
             shutil.copy2(ws / 'service.py', code_dst)
     if not a.keep_workspaces:
         shutil.rmtree(base, ignore_errors=True)
-    print(f'[{"PASS" if passed else "FAIL"}] {tag}  {runtime}s  ${cost:.4f}', flush=True)
+    note = '  (turn budget exhausted; graded normally)' if budget_exhausted else ''
+    print(f'[{"PASS" if passed else "FAIL"}] {tag}  {runtime}s  ${cost:.4f}{note}', flush=True)
     return tag, 'pass' if passed else 'fail'
 
 
@@ -303,7 +351,9 @@ def main():
     with ThreadPoolExecutor(max_workers=a.parallel) as pool:
         outcomes = list(pool.map(lambda j: one_trial(*j, a, cli_version), jobs))
     not_recorded = [t for t, s in outcomes if s == 'infra']
-    print(f'\nDone. {len(outcomes) - len(not_recorded)} recorded, '
+    incomplete = [t for t, s in outcomes if s == 'incomplete']
+    print(f'\nDone. {len(outcomes) - len(not_recorded) - len(incomplete)} graded and recorded, '
+          f'{len(incomplete)} incomplete (budget exhausted, ungradable; see results/incomplete_attempts.jsonl), '
           f'{len(not_recorded)} infrastructure failures not recorded (rerun to retry).')
     subprocess.run(RUN_EVAL + ['summary', '--output', str(RESULTS / 'summary.json')])
     write_network_audit()

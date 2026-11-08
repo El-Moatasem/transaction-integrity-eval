@@ -79,7 +79,7 @@ The distributed baseline is **ready for local grading/calibration**, not yet a c
 ```bash
 python scripts/run_claude_trials.py --help
 python scripts/run_claude_trials.py --models <exact-model-id> --tasks T01,T10 --trials 1 --dry-run
-python -m unittest discover -s scripts -p 'test_trial_runner.py'   # stub CLI in a temp repo copy
+python -m unittest discover -s scripts -p 'test_trial_runner.py'   # stub CLI in a temp repo copy; aborts unless `claude` resolves to the stub
 ```
 
 What it guarantees:
@@ -87,6 +87,7 @@ What it guarantees:
 - Each trial gets a fresh temporary workspace outside the repository containing only `INSTRUCTION.md` and the starter `service.py` (no reference solution, mutants, hidden tests, Git history or other trials).
 - Missing `result` events, non-zero CLI exits, `is_error` results (authentication, rate limit, overload), crashes, timeouts and grader infrastructure errors are reported as `[INFRA - not recorded]` and are never recorded as model failures. Rerun to retry.
 - Recorded settings include the requested and CLI-reported model, CLI version, tool policy, turn limit, runtime and cost; the record adds transcript, code and grader SHA-256 hashes and repository-relative transcript/grade paths.
+- A genuine CLI result event with `subtype == "error_max_turns"` is classified **before** the generic `is_error`/non-zero-exit check as a model attempt that exhausted its turn budget, not an infrastructure failure. Its final `service.py` is graded by the normal grader and recorded with its real pass/fail outcome; the subtype never decides the score. Settings record `stop_subtype`, `max_turns` and `turn_budget_exhausted: true`. If such an attempt cannot be graded (no report, or a grader exit other than 0/1), its transcript, final code, runtime and cost are preserved under `results/incomplete/` and listed in `results/incomplete_attempts.jsonl` with `status: incomplete` and no score; it is excluded from `trials.jsonl` and pass rates, and its trial slot is not re-run on resume.
 - Already-recorded (task, model, agent, trial) combinations are skipped, and `record` refuses to overwrite existing evidence, so interrupted batches resume safely.
 - Record operations are serialized by a process-local `threading.Lock` in the runner and an exclusive `fcntl` file lock (`results/.trials.lock`) inside `run_eval.py record`, so parallel workers and concurrent POSIX processes cannot interleave the duplicate check, evidence copy and JSONL append. On Windows (no `fcntl`) only the thread lock applies: do not run two batches at once there.
 

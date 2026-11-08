@@ -39,6 +39,13 @@ STUB = textwrap.dedent('''\
     cmd = 'curl https://github.com/x' if model == 'stub-curl' else 'ls'
     emit({{'type': 'assistant', 'message': {{'content': [
         {{'type': 'tool_use', 'name': 'Bash', 'input': {{'command': cmd}}}}]}}}})
+    if model.startswith('stub-maxturns'):
+        if model == 'stub-maxturns-solved':
+            import os, shutil; shutil.copy(os.environ['STUB_SOLUTION'], 'service.py')
+        if model == 'stub-maxturns-broken':
+            open('service.py', 'w').write('def broken(:')
+        emit({{'type': 'result', 'subtype': 'error_max_turns', 'is_error': True, 'num_turns': 3,
+              'total_cost_usd': 0.0}}); sys.exit(1)
     emit({{'type': 'result', 'subtype': 'success', 'is_error': False, 'num_turns': 1,
           'total_cost_usd': 0.0}})
 ''')
@@ -59,8 +66,19 @@ class TrialRunnerTests(unittest.TestCase):
         stub = bin_dir / 'claude'
         stub.write_text(STUB.format(python=sys.executable))
         stub.chmod(0o755)
-        cls.env = {**os.environ, 'PATH': f'{bin_dir}{os.pathsep}{os.environ["PATH"]}'}
+        # Fail closed: the real CLI must be unreachable. PATH holds only the
+        # stub directory and system dirs (the runner and grader use absolute
+        # sys.executable), and the resolved `claude` must be this stub.
+        path = os.pathsep.join([str(bin_dir), '/usr/bin', '/bin'])
+        cls.env = {**os.environ, 'PATH': path}
         cls.env.pop('ANTHROPIC_API_KEY', None)
+        resolved = shutil.which('claude', path=path)
+        if resolved != str(stub):
+            raise RuntimeError(f'refusing to run: claude resolves to {resolved}, not the stub')
+        version = subprocess.run([str(stub), '--version'], capture_output=True, text=True, env=cls.env)
+        if version.stdout.strip() != '0.0.0 (offline stub)':
+            raise RuntimeError(f'stub CLI is not executable: {version.stdout}{version.stderr}')
+        cls.env['STUB_SOLUTION'] = str(ROOT / 'tasks' / 'T01_capture-idempotency' / 'solution' / 'service.py')
 
     @classmethod
     def tearDownClass(cls):
@@ -115,6 +133,35 @@ class TrialRunnerTests(unittest.TestCase):
         audit = json.loads((self.repo / 'results' / 'network_audit.json').read_text())
         flagged = {(t['model_version'], t['flagged']) for t in audit['trials']}
         self.assertEqual(flagged, {('stub-ok', False), ('stub-curl', True)})
+
+    def test_4_max_turns_is_a_graded_model_attempt(self):
+        out = self.run_runner('--models', 'stub-maxturns,stub-maxturns-solved,stub-maxturns-broken',
+                              '--tasks', 'T01', '--trials', '1', '--parallel', '3')
+        self.assertEqual(out.returncode, 0, out.stdout + out.stderr)
+        self.assertNotIn('[INFRA', out.stdout)
+        rows = {r['model_version']: r for r in self.rows() if r['model_version'].startswith('stub-maxturns')}
+        # Outcome comes from the real grader, not from the subtype.
+        self.assertEqual(rows['stub-maxturns']['passed'], False)
+        self.assertEqual(rows['stub-maxturns-solved']['passed'], True)
+        for r in rows.values():
+            s = r['settings']
+            self.assertEqual(s['stop_subtype'], 'error_max_turns')
+            self.assertTrue(s['turn_budget_exhausted'])
+            self.assertEqual(s['max_turns'], 40)
+            self.assertGreater(r['runtime_seconds'], 0)
+            self.assertTrue((self.repo / r['transcript_path']).is_file())
+        # Ungradable attempt: preserved separately, never scored.
+        self.assertNotIn('stub-maxturns-broken', rows)
+        inc = [json.loads(l) for l in (self.repo / 'results' / 'incomplete_attempts.jsonl').read_text().splitlines()]
+        self.assertEqual([(r['model_version'], r['status']) for r in inc], [('stub-maxturns-broken', 'incomplete')])
+        self.assertNotIn('passed', inc[0])
+        self.assertTrue(inc[0]['settings']['turn_budget_exhausted'])
+        evidence = self.repo / inc[0]['evidence_dir']
+        self.assertTrue((evidence / 'transcript.jsonl').is_file())
+        self.assertIn('def broken', (evidence / 'final_service.py').read_text())
+        again = self.run_runner('--models', 'stub-maxturns,stub-maxturns-solved,stub-maxturns-broken',
+                                '--tasks', 'T01', '--trials', '1')
+        self.assertIn('0 trials to run', again.stdout)
 
 
 if __name__ == '__main__':
