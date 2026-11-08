@@ -30,7 +30,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.51,
+        "pause_seconds": 1.504,
         "release_timed_out": false
       }
     ],
@@ -42,66 +42,6 @@
   {
     "task": "T02",
     "label": "unmodified reference accepted",
-    "kind": "good",
-    "grader_exit": 0,
-    "race_runs": [
-      {
-        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
-        "a_paused": true,
-        "b_finished_while_a_paused": false,
-        "b_started_while_a_paused": true,
-        "pause_seconds": 1.508,
-        "release_timed_out": false
-      }
-    ],
-    "race_exercised": true,
-    "failures": [],
-    "outcome": "ACCEPTED",
-    "ok": true
-  },
-  {
-    "task": "T10",
-    "label": "unmodified reference accepted",
-    "kind": "good",
-    "grader_exit": 0,
-    "race_runs": [
-      {
-        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
-        "a_paused": true,
-        "b_finished_while_a_paused": false,
-        "b_started_while_a_paused": true,
-        "pause_seconds": 1.508,
-        "release_timed_out": false
-      }
-    ],
-    "race_exercised": true,
-    "failures": [],
-    "outcome": "ACCEPTED",
-    "ok": true
-  },
-  {
-    "task": "T01",
-    "label": "valid deferred transaction accepted",
-    "kind": "good",
-    "grader_exit": 0,
-    "race_runs": [
-      {
-        "a_pause_statement": "UPDATE accounts SET balance_cents=balance_cents-300 WHERE account_id='alice'",
-        "a_paused": true,
-        "b_finished_while_a_paused": false,
-        "b_started_while_a_paused": true,
-        "pause_seconds": 1.508,
-        "release_timed_out": false
-      }
-    ],
-    "race_exercised": true,
-    "failures": [],
-    "outcome": "ACCEPTED",
-    "ok": true
-  },
-  {
-    "task": "T02",
-    "label": "valid deferred transaction accepted",
     "kind": "good",
     "grader_exit": 0,
     "race_runs": [
@@ -121,6 +61,66 @@
   },
   {
     "task": "T10",
+    "label": "unmodified reference accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=30 WHERE account_id='a'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.504,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T01",
+    "label": "valid deferred transaction accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE accounts SET balance_cents=balance_cents-300 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.504,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T02",
+    "label": "valid deferred transaction accepted",
+    "kind": "good",
+    "grader_exit": 0,
+    "race_runs": [
+      {
+        "a_pause_statement": "UPDATE balances SET available_cents=available_cents+700 WHERE account_id='alice'",
+        "a_paused": true,
+        "b_finished_while_a_paused": false,
+        "b_started_while_a_paused": true,
+        "pause_seconds": 1.504,
+        "release_timed_out": false
+      }
+    ],
+    "race_exercised": true,
+    "failures": [],
+    "outcome": "ACCEPTED",
+    "ok": true
+  },
+  {
+    "task": "T10",
     "label": "valid deferred transaction accepted",
     "kind": "good",
     "grader_exit": 0,
@@ -130,7 +130,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.508,
+        "pause_seconds": 1.503,
         "release_timed_out": false
       }
     ],
@@ -176,7 +176,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.002,
+        "pause_seconds": 0.001,
         "release_timed_out": false
       }
     ],
@@ -254,7 +254,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": true,
         "b_started_while_a_paused": true,
-        "pause_seconds": 0.001,
+        "pause_seconds": 0.002,
         "release_timed_out": false
       }
     ],
@@ -323,7 +323,7 @@
         "a_paused": true,
         "b_finished_while_a_paused": false,
         "b_started_while_a_paused": true,
-        "pause_seconds": 1.51,
+        "pause_seconds": 1.502,
         "release_timed_out": false
       }
     ],
