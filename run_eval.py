@@ -1,127 +1,283 @@
 #!/usr/bin/env python3
-"""Offline, behavior-based validation and isolated workspace grading.
+"""Local diagnostic evaluation and honest record keeping; NOT an isolation sandbox.
 
-Never mount solution/ or tests/ into an agent's working directory.
+Formal agent trials require a separate sandbox (e.g. Harbor/Docker). Only use this
+script to grade code you are prepared to execute on your current machine.
 """
 import argparse
+from collections import defaultdict
+from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
 
-ROOT=Path(__file__).resolve().parent
-TASK_ROOT=ROOT/'tasks'
+ROOT = Path(__file__).resolve().parent
+TASK_ROOT = ROOT / 'tasks'
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
 
 def tasks():
-    return sorted(p for p in TASK_ROOT.iterdir() if p.is_dir() and (p/'instruction.md').is_file())
+    return sorted(p for p in TASK_ROOT.iterdir() if p.is_dir() and (p / 'instruction.md').is_file())
 
-def select(id):
-    found=[p for p in tasks() if p.name.startswith(id+'_') or p.name==id]
-    if len(found)!=1:raise SystemExit(f'Unknown/ambiguous task {id}. Valid: '+', '.join(x.name[:3] for x in tasks()))
+
+def select(task_id):
+    found = [p for p in tasks() if p.name.startswith(task_id + '_') or p.name == task_id]
+    if len(found) != 1:
+        raise SystemExit('Unknown/ambiguous task. Choose from: ' + ', '.join(t.name[:3] for t in tasks()))
     return found[0]
 
-def grade_code(task, code, timeout=60):
-    """Run tests in a fresh directory, inaccessible to the code under test before grading."""
-    with tempfile.TemporaryDirectory(prefix='txn-grade-') as tmp:
-        ws=Path(tmp)
-        shutil.copy2(code,ws/'service.py')
-        shutil.copytree(task/'tests',ws/'tests')
-        e=os.environ.copy();e['PYTHONPATH']=str(ws);e['PYTHONDONTWRITEBYTECODE']='1';e['PYTEST_DISABLE_PLUGIN_AUTOLOAD']='1'
-        try:
-            proc=subprocess.run([sys.executable,'-m','pytest','-q','-p','no:cacheprovider','tests/test_service.py'],cwd=ws,env=e,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=timeout)
-            return {'passed':proc.returncode==0,'exit_code':proc.returncode,'log':proc.stdout[-16000:]}
-        except subprocess.TimeoutExpired:
-            return {'passed':False,'exit_code':124,'log':f'Timed out after {timeout} seconds'}
 
-def _validate_one(payload):
-    t,timeout=payload
-    runs={label:grade_code(t,t/path,timeout) for label,path in [
-        ('reference','solution/service.py'),('baseline','environment/service.py'),('wrong_fix','mutants/service.py')]}
-    ok=runs['reference']['passed'] and not runs['baseline']['passed'] and not runs['wrong_fix']['passed']
-    return {'task':t.name,'controls':runs,'valid':ok}
+def grade_code(task, code, timeout=60):
+    """Run pytest in a temporary grading workspace, outside the agent's task folder."""
+    with tempfile.TemporaryDirectory(prefix='txn-grade-') as temp:
+        work = Path(temp)
+        shutil.copy2(code, work / 'service.py')
+        shutil.copytree(task / 'tests', work / 'tests')
+        env = os.environ.copy()
+        env.update(PYTHONPATH=str(work), PYTHONDONTWRITEBYTECODE='1', PYTEST_DISABLE_PLUGIN_AUTOLOAD='1')
+        try:
+            proc = subprocess.run(
+                [sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tests/test_service.py'],
+                cwd=work, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                timeout=timeout,
+            )
+            return dict(passed=proc.returncode == 0, exit_code=proc.returncode, log=proc.stdout[-24000:])
+        except subprocess.TimeoutExpired:
+            return dict(passed=False, exit_code=124, log=f'Grading timed out after {timeout} seconds')
+        except OSError as exc:
+            return dict(passed=False, exit_code=125, log=f'Grading infrastructure error: {exc}')
+
+
+def _validate_one(args):
+    task, timeout = args
+    variants = {
+        'reference': 'solution/service.py',
+        'baseline': 'environment/service.py',
+        'wrong_fix': 'mutants/service.py',
+    }
+    runs = {name: grade_code(task, task / rel, timeout=timeout) for name, rel in variants.items()}
+    valid = (runs['reference']['exit_code'] == 0 and
+             runs['baseline']['exit_code'] == 1 and
+             runs['wrong_fix']['exit_code'] == 1)
+    return dict(task=task.name, controls=runs, valid=valid)
+
 
 def validate(args):
     from concurrent.futures import ThreadPoolExecutor
-    selected=[select(args.task)] if args.task else tasks()
-    report={'timestamp_utc':datetime.now(timezone.utc).isoformat(),'tasks':[]}
-    with ThreadPoolExecutor(max_workers=min(4,len(selected))) as pool:
-        for outcome in pool.map(_validate_one,[(t,args.timeout) for t in selected]):
-            runs=outcome['controls'];ok=outcome['valid']
+    selected = [select(args.task)] if args.task else tasks()
+    report = dict(timestamp_utc=utc_now(), tasks=[])
+    # A small concurrency pool permits independent controls without overloading
+    # CI and causing spurious lock/pytest timeouts.
+    with ThreadPoolExecutor(max_workers=min(2, len(selected))) as pool:
+        for outcome in pool.map(_validate_one, [(t, args.timeout) for t in selected]):
             report['tasks'].append(outcome)
-            print(f"{outcome['task'][:3]} {'PASS' if ok else 'FAIL'} | golden={'pass' if runs['reference']['passed'] else 'FAIL'} baseline={'pass' if runs['baseline']['passed'] else 'fail'} wrong_fix={'pass' if runs['wrong_fix']['passed'] else 'fail'}",flush=True)
-            if not ok:
-                for label,run in runs.items():
-                    if (label=='reference' and not run['passed']) or (label!='reference' and run['passed']):
-                        print('  '+label+': '+run['log'][-2200:])
-    out=ROOT/'results'/'validation.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(report,indent=2)+'\n')
-    print(f'Wrote {out.relative_to(ROOT)}')
+            runs = outcome['controls']
+            status = 'PASS' if outcome['valid'] else 'FAIL'
+            print(f"{outcome['task'][:3]} {status} | " + ' '.join(
+                f'{name}={runs[name]["exit_code"]}' for name in ('reference', 'baseline', 'wrong_fix')
+            ), flush=True)
+            if not outcome['valid']:
+                for name, expected in [('reference', 0), ('baseline', 1), ('wrong_fix', 1)]:
+                    if runs[name]['exit_code'] != expected:
+                        print(f'  {name}: {runs[name]["log"][-1600:]}')
+    path = Path(args.output).expanduser().resolve() if args.output else ROOT / 'results' / 'validation.json'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2) + '\n')
+    print(f'Wrote {path}')  # Support output paths outside the repository.
     return int(any(not x['valid'] for x in report['tasks']))
 
+
 def prepare(args):
-    t=select(args.task);p=Path(args.output).expanduser().resolve()
-    if p.exists() and any(p.iterdir()):raise SystemExit('Output dir must be absent or empty (prevents trial contamination)')
-    p.mkdir(parents=True,exist_ok=True)
-    for source in (t/'environment').iterdir():
-        if source.is_file() and source.name!='Dockerfile':shutil.copy2(source,p/source.name)
-    shutil.copy2(t/'instruction.md',p/'INSTRUCTION.md')
-    print(f'Prepared {p} for {t.name}. Agent sees only service.py and INSTRUCTION.md.')
+    task = select(args.task)
+    dest = Path(args.output).expanduser().resolve()
+    if dest == ROOT or dest == task or dest == TASK_ROOT:
+        raise SystemExit('Output must be a fresh isolated workspace, never the repository root')
+    if dest.exists() and any(dest.iterdir()):
+        raise SystemExit('Output directory must be absent or empty')
+    dest.mkdir(parents=True, exist_ok=True)
+    for src in (task / 'environment').iterdir():
+        if src.is_file() and src.name != 'Dockerfile':
+            shutil.copy2(src, dest / src.name)
+    shutil.copy2(task / 'instruction.md', dest / 'INSTRUCTION.md')
+    print(f'Prepared {dest} for {task.name}. Give only this folder to the agent.')
     return 0
+
+
+def grader_sha(task):
+    h = hashlib.sha256()
+    for path in sorted((task / 'tests').rglob('*')):
+        if path.is_file() and path.suffix in ('.py', '.sh'):
+            h.update(path.relative_to(task).as_posix().encode() + b'\0')
+            h.update(path.read_bytes())
+    return h.hexdigest()
+
 
 def grade(args):
-    t=select(args.task);workspace=Path(args.workspace).expanduser().resolve();service=workspace/'service.py'
-    if not service.is_file():raise SystemExit(f'No service.py at {service}')
-    r=grade_code(t,service,args.timeout)
-    record={'timestamp_utc':datetime.now(timezone.utc).isoformat(),'task':t.name,'workspace':str(workspace),'passed':r['passed'],'exit_code':r['exit_code'],'test_log':r['log']}
-    out=Path(args.output).expanduser().resolve() if args.output else ROOT/'results'/f'{t.name[:3]}_last_grade.json'
-    out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(record,indent=2)+'\n')
-    print(f"{t.name[:3]}: {'PASS' if r['passed'] else 'FAIL'}\n{r['log']}\nSaved {out}")
-    return 0 if r['passed'] else 1
+    task = select(args.task)
+    workspace = Path(args.workspace).expanduser().resolve()
+    code = workspace / 'service.py'
+    if not code.is_file():
+        raise SystemExit(f'Missing agent implementation {code}')
+    check = grade_code(task, code, timeout=args.timeout)
+    report = {
+        'timestamp_utc': utc_now(), 'task': task.name, 'workspace': str(workspace),
+        'passed': check['passed'], 'exit_code': check['exit_code'], 'test_log': check['log'],
+        'code_sha256': sha(code), 'instruction_sha256': sha(task / 'instruction.md'),
+        'grader_sha256': grader_sha(task),
+    }
+    dest = Path(args.output).expanduser().resolve() if args.output else ROOT / 'results' / f'{task.name[:3]}_last_grade.json'
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(report, indent=2) + '\n')
+    print(f'{task.name[:3]}: {"PASS" if check["passed"] else "FAIL"} (exit {check["exit_code"]})')
+    print(check['log'][-4000:])
+    print(f'Saved {dest}')
+    return 0 if check['passed'] else 1
+
+
+def _safe_name(value):
+    slug = re.sub(r'[^a-zA-Z0-9_.-]+', '-', value.strip())[:80].strip('.-')
+    if not slug:
+        raise SystemExit('Model/agent identifiers must not be blank')
+    return slug
+
 
 def record(args):
-    t=select(args.task);path=Path(args.transcript).expanduser().resolve()
-    if not path.is_file() or not path.stat().st_size:raise SystemExit('Provide a nonempty actual trial transcript')
-    grade_report=json.loads(Path(args.grade_json).expanduser().read_text())
-    if grade_report.get('task')!=t.name:raise SystemExit('Grade report belongs to a different task')
-    record={'task':t.name,'trial':args.trial,'model':args.model,'model_version':args.version,'settings':args.settings,'date_utc':datetime.now(timezone.utc).isoformat(),'passed':bool(grade_report['passed']),'runtime_seconds':args.runtime,'cost_usd':args.cost,'transcript_path':str(path),'grade_report':str(args.grade_json),'notes':args.notes}
-    out=ROOT/'results'/'trials.jsonl';out.parent.mkdir(exist_ok=True)
-    with out.open('a') as f:f.write(json.dumps(record)+'\n')
-    print('Recorded one REAL completed trial; saved to results/trials.jsonl')
+    """Copy an ACTUAL transcript + grade into portable in-package evidence paths.
+
+    Provenance of arbitrary files cannot be authenticated here. The participant
+    must ensure these are real untouched agent outputs and accurate billing data.
+    """
+    task = select(args.task)
+    if args.trial < 1 or args.runtime is None or args.runtime <= 0 or args.cost is None or args.cost < 0:
+        raise SystemExit('Supply positive trial number and measured runtime; cost must be nonnegative')
+    try:
+        settings = json.loads(args.settings)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f'--settings must contain valid JSON: {exc}')
+    if not isinstance(settings, dict):
+        raise SystemExit('--settings must be a JSON object')
+    transcript = Path(args.transcript).expanduser().resolve()
+    grade_path = Path(args.grade_json).expanduser().resolve()
+    if not transcript.is_file() or not transcript.stat().st_size:
+        raise SystemExit('Supply a nonempty authentic model trial transcript')
+    if not grade_path.is_file():
+        raise SystemExit('Grade report does not exist')
+    g = json.loads(grade_path.read_text())
+    if g.get('task') != task.name or g.get('exit_code') not in (0, 1):
+        raise SystemExit('Grade is not for this task, or represents an infrastructure failure')
+    if not g.get('code_sha256') or not g.get('grader_sha256'):
+        raise SystemExit('Grade report missing code/grader hashes; rerun grade with this version')
+    model_id = _safe_name(args.version)
+    agent_id = _safe_name(args.agent)
+    basename = f'{task.name[:3]}_{model_id}_{agent_id}_trial{args.trial:02d}'
+    transcript_suffix = transcript.suffix.lower() if transcript.suffix.lower() in ('.txt', '.json', '.jsonl', '.log', '.md') else '.txt'
+    raw_dst = ROOT / 'transcripts' / (basename + transcript_suffix)
+    grade_dst = ROOT / 'results' / 'grades' / (basename + '.json')
+    records = ROOT / 'results' / 'trials.jsonl'
+    existing = [json.loads(line) for line in records.read_text().splitlines() if line.strip()] if records.exists() else []
+    key = (task.name, args.version, args.agent, args.trial)
+    if any((r.get('task'), r.get('model_version'), r.get('agent'), r.get('trial')) == key for r in existing):
+        raise SystemExit('This task/model/agent/trial is already recorded; do not overwrite provenance')
+    if raw_dst.exists() or grade_dst.exists():
+        raise SystemExit(f'Evidence destination already exists for {basename}')
+    raw_dst.parent.mkdir(parents=True, exist_ok=True)
+    grade_dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(transcript, raw_dst)
+    shutil.copy2(grade_path, grade_dst)
+    record = {
+        'task': task.name, 'trial': args.trial, 'model': args.model, 'model_version': args.version,
+        'agent': args.agent, 'settings': settings, 'date_utc': utc_now(), 'passed': g['passed'],
+        'runtime_seconds': args.runtime, 'cost_usd': args.cost,
+        'transcript_path': raw_dst.relative_to(ROOT).as_posix(),
+        'transcript_sha256': sha(raw_dst),
+        'grade_report': grade_dst.relative_to(ROOT).as_posix(),
+        'code_sha256': g['code_sha256'], 'grader_sha256': g['grader_sha256'],
+        'instruction_sha256': g['instruction_sha256'], 'notes': args.notes,
+    }
+    with records.open('a') as fp:
+        fp.write(json.dumps(record, sort_keys=True) + '\n')
+    print(f'Recorded participant-supplied trial evidence: {basename}')
+    print('This recorder does not independently attest the model run or its reported cost.')
     return 0
+
+
+def summarize_records(records):
+    groups = defaultdict(list)
+    for row in records:
+        groups[(row['model_version'], row.get('agent', ''), row['task'])].append(row)
+    report = []
+    for (model, agent, task), rows in sorted(groups.items()):
+        rows = sorted(rows, key=lambda r: r['trial'])
+        n = len(rows)
+        successes = sum(bool(r['passed']) for r in rows)
+        report.append({
+            'model_version': model, 'agent': agent, 'task': task, 'trials': n,
+            'passed': successes, 'pass_rate': successes / n,
+            'pass_at_k_observed': int(successes > 0),
+            'pass_pow_k_observed': int(successes == n),
+            'total_runtime_seconds': sum(float(r.get('runtime_seconds') or 0) for r in rows),
+            'total_cost_usd': sum(float(r.get('cost_usd') or 0) for r in rows),
+        })
+    return report
+
 
 def summary(args):
-    path=ROOT/'results'/'trials.jsonl'
+    path = ROOT / 'results' / 'trials.jsonl'
     if not path.exists():
-        print('No real model trials recorded yet. Run prepare, grade, then record.');return 0
-    from collections import defaultdict
-    groups=defaultdict(list)
-    for line in path.read_text().splitlines():
-        if line.strip():
-            row=json.loads(line);groups[(row['model'],row['task'])].append(row)
-    output=[]
-    for (model,task),rows in sorted(groups.items()):
-        rows=sorted(rows,key=lambda x:x['trial'])
-        passed=sum(bool(x['passed']) for x in rows)
-        output.append({'model':model,'task':task,'n':len(rows),'pass_rate':passed/len(rows),'pass_all_observed':passed==len(rows),'pass_any_observed':passed>0})
-    print(json.dumps(output,indent=2))
-    # pass_any and pass_all are observed trial outcomes, not estimates of population pass@k / pass^k.
+        print('No real trial records yet. Run authentic trials before reporting model scores.')
+        return 0
+    rows = [json.loads(s) for s in path.read_text().splitlines() if s.strip()]
+    report = summarize_records(rows)
+    body = json.dumps(report, indent=2) + '\n'
+    print(body)
+    if args.output:
+        dest = Path(args.output).expanduser().resolve()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(body)
+        print(f'Wrote {dest}')
     return 0
 
+
 def main():
-    p=argparse.ArgumentParser(description='Transaction Integrity Eval runner')
-    sub=p.add_subparsers(dest='command',required=True)
-    v=sub.add_parser('validate',help='Check reference pass + baseline and wrong-fix failures')
-    v.add_argument('--task');v.add_argument('--timeout',type=int,default=60);v.set_defaults(func=validate)
-    pre=sub.add_parser('prepare',help='Create a clean agent-visible workspace')
-    pre.add_argument('--task',required=True);pre.add_argument('--output',required=True);pre.set_defaults(func=prepare)
-    g=sub.add_parser('grade',help='Test completed agent workspace using grader in a separate temp directory')
-    g.add_argument('--task',required=True);g.add_argument('--workspace',required=True);g.add_argument('--output');g.add_argument('--timeout',type=int,default=60);g.set_defaults(func=grade)
-    r=sub.add_parser('record',help='Append real trial metadata; never invent transcripts')
-    for key in ('task','model','version','transcript','grade-json'):r.add_argument('--'+key,required=True)
-    r.add_argument('--trial',type=int,required=True);r.add_argument('--settings',default='{}');r.add_argument('--runtime',type=float);r.add_argument('--cost',type=float);r.add_argument('--notes',default='');r.set_defaults(func=record)
-    s=sub.add_parser('summary');s.set_defaults(func=summary)
-    args=p.parse_args();sys.exit(args.func(args))
-if __name__=='__main__':main()
+    p = argparse.ArgumentParser(description='Offline transaction-integrity benchmark controls')
+    sub = p.add_subparsers(dest='command', required=True)
+    v = sub.add_parser('validate', help='Reference pass, starter/mutant assertion failures')
+    v.add_argument('--task'); v.add_argument('--timeout', type=int, default=60); v.add_argument('--output'); v.set_defaults(func=validate)
+    prep = sub.add_parser('prepare', help='Produce a clean agent-visible workspace')
+    prep.add_argument('--task', required=True); prep.add_argument('--output', required=True); prep.set_defaults(func=prepare)
+    grade_parser = sub.add_parser('grade', help='Grade a completed workspace locally (not sandboxed)')
+    grade_parser.add_argument('--task', required=True); grade_parser.add_argument('--workspace', required=True)
+    grade_parser.add_argument('--output'); grade_parser.add_argument('--timeout', type=int, default=60); grade_parser.set_defaults(func=grade)
+    rec = sub.add_parser('record', help='Copy genuine participant-provided trial evidence into the project')
+    for k in ('task', 'model', 'version', 'transcript', 'grade-json'):
+        rec.add_argument('--' + k, required=True)
+    rec.add_argument('--trial', type=int, required=True)
+    rec.add_argument('--settings', default='{}')
+    rec.add_argument('--agent', default='manual-isolated-agent')
+    rec.add_argument('--runtime', type=float, required=True)
+    rec.add_argument('--cost', type=float, required=True)
+    rec.add_argument('--notes', default='')
+    rec.set_defaults(func=record)
+    s = sub.add_parser('summary', help='Report observed outcomes, not population estimates')
+    s.add_argument('--output'); s.set_defaults(func=summary)
+    a = p.parse_args()
+    if hasattr(a, 'timeout') and a.timeout < 1:
+        p.error('--timeout must be positive')
+    return a.func(a)
+
+
+if __name__ == '__main__':
+    sys.exit(main())

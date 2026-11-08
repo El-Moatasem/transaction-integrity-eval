@@ -29,3 +29,29 @@ def test_injected_partial_write_failure_rolls_back(tmp_path):
     with pytest.raises(sqlite3.DatabaseError):capture(c,'failure','alice',200)
     assert c.execute("SELECT balance_cents FROM accounts WHERE account_id='alice'").fetchone()[0]==1000
     assert c.execute('SELECT count(*) FROM captures').fetchone()[0]==0
+
+from race_probe import pair_on_file, permissible_error
+
+def test_competing_identical_capture_across_connections(tmp_path):
+    path, seed = db(tmp_path)
+    seed.close()
+    outcomes = pair_on_file(
+        path,
+        lambda conn: capture(conn, 'shared', 'alice', 300),
+        lambda conn: capture(conn, 'shared', 'alice', 300),
+        lambda sql: 'from captures' in sql and 'where key' in sql,
+    )
+    for result, err in outcomes:
+        # A same-key, same-payload request must replay or encounter a permitted
+        # SQLite lock timeout; ValueError is not allowed for an identical replay.
+        assert err is None or (permissible_error(err) and not isinstance(err, ValueError)), \
+            f'unexpected competing capture error: {err!r}' 
+        if result is not None:
+            assert result == {'receipt_id': 'cap_shared', 'account_id': 'alice',
+                              'amount_cents': 300, 'status': 'captured'}
+    assert any(err is None for _, err in outcomes)
+    with sqlite3.connect(path, timeout=5) as conn:
+        assert conn.execute("SELECT balance_cents FROM accounts WHERE account_id='alice'").fetchone()[0] == 700
+        assert conn.execute('SELECT COUNT(*) FROM captures').fetchone()[0] == 1
+        assert capture(conn, 'shared', 'alice', 300)['receipt_id'] == 'cap_shared'
+        assert conn.execute("SELECT balance_cents FROM accounts WHERE account_id='alice'").fetchone()[0] == 700

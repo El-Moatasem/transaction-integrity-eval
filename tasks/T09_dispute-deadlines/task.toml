@@ -2,7 +2,7 @@ schema_version = "1.4"
 
 [task]
 name = "transaction-integrity/t09-dispute-deadlines"
-version = "0.2.0"
+version = "0.5.0"
 description = "T09: Dispute lifecycle and inclusive UTC deadline"
 keywords = ["python", "sqlite", "payments", "pytest", "transaction-integrity"]
 
@@ -21,4 +21,4 @@ timeout_sec = 120.0
 cpus = 2
 memory_mb = 2048
 storage_mb = 2048
-network_mode = "public"
+network_mode = "no-network"
