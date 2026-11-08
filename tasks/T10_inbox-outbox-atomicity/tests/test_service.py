@@ -37,3 +37,36 @@ def test_pending_sort_and_two_events(tmp_path):
     _,c=db(tmp_path);apply_event(c,'z','a',10);apply_event(c,'b','a',-5)
     assert [x['event_id'] for x in get_pending(c)]==['b','z']
     assert [x['payload']['balance_after_cents'] for x in get_pending(c)]==[105,110]
+
+from race_probe import pair_on_file, permissible_error
+
+def test_competing_debits_preserve_balance_inbox_and_outbox(tmp_path):
+    path, seed = db(tmp_path)
+    seed.close()
+    outcomes = pair_on_file(
+        path,
+        lambda conn: apply_event(conn, 'eventA', 'a', -70),
+        lambda conn: apply_event(conn, 'eventB', 'a', -70),
+        lambda sql: 'from inbox' in sql and 'where event_id' in sql,
+    )
+    for result, err in outcomes:
+        assert permissible_error(err), f'unexpected competing event error: {err!r}'
+        if result is not None:
+            assert result['balance_after_cents'] == 30
+    with sqlite3.connect(path, timeout=5) as conn:
+        inbox = conn.execute('SELECT event_id, delta_cents, balance_after_cents FROM inbox').fetchall()
+        outbox = conn.execute('SELECT event_id, payload, published FROM outbox').fetchall()
+        balance = conn.execute("SELECT balance_cents FROM accounts WHERE account_id='a'").fetchone()[0]
+        assert balance in (30, 100), 'account balance overdrawn or corrupted'
+        assert len(inbox) <= 1 and len(outbox) == len(inbox)
+        if not inbox:
+            apply_event(conn, 'eventA', 'a', -70)
+            inbox = conn.execute('SELECT event_id, delta_cents, balance_after_cents FROM inbox').fetchall()
+            outbox = conn.execute('SELECT event_id, payload, published FROM outbox').fetchall()
+            balance = conn.execute("SELECT balance_cents FROM accounts WHERE account_id='a'").fetchone()[0]
+        assert balance == 30 and len(inbox) == len(outbox) == 1
+        assert inbox[0][1:] == (-70, 30) and inbox[0][0] == outbox[0][0]
+        assert outbox[0][2] == 0
+        assert json.loads(outbox[0][1])['balance_after_cents'] == 30
+        assert apply_event(conn, inbox[0][0], 'a', -70)['balance_after_cents'] == 30
+        assert conn.execute('SELECT COUNT(*) FROM outbox').fetchone()[0] == 1

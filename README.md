@@ -1,83 +1,112 @@
 # Transaction Integrity Eval
 
-**Status:** Original prototype benchmark; not yet validated on frontier models. Do not claim measured model limitations until real trials have been run and audited.
+**A reproducible coding-agent benchmark of financial transaction integrity.**
 
-**Research hypothesis:** models may preserve financial invariants on the happy path while violating them under concurrent operations, retries, reordered events, partial writes and recovery. This is a hypothesis until genuine model trials establish it.
+**Submission state:** implementation and local calibration scaffold complete; **formal Harbor runs, real frontier-model results, human failure analysis and video are PENDING**. This README must be completed with actual experimental evidence before uploading to micro1. Do not describe the hypothesis as a confirmed finding.
 
-A small, offline-first coding-agent benchmark for reliability of money movement systems. Ten separate Python tasks cover payment captures, refunds, ledgers, webhooks, reconciliation, FX, proration, split payouts, dispute deadlines and transactional inbox/outbox patterns. The problem statements are designed around production invariants, not trick questions. No AgentGuard or Askable project code, hidden tests or solutions are copied.
+## Short description: domain, gap and key finding
 
-## Layout
+The domain is financial-transaction software engineering. This eval tests whether AI coding agents preserve ledger and payment invariants when requests are retried, overlap, arrive out of order, or fail halfway through. Such defects can lead to duplicate charges, excess refunds, missing payouts, or inconsistent account books. **Key empirical finding: RESULTS_PENDING — complete this sentence from genuine model transcripts before final submission.**
 
-- `tasks/T01_.../` to `tasks/T10_.../`: independently runnable tasks.
-- `instruction.md`: complete agent-visible task and behavioural contract.
-- `environment/service.py`: deliberately incomplete or flawed starter implementation, shown to agents.
-- `environment/Dockerfile`: Harbor agent container image, without grader or reference.
-- `solution/service.py` and `solution/solve.sh`: Oracle reference *candidate*; held back from agents.
-- `tests/test_service.py` and `tests/test.sh`: code-based grader and Harbor reward script; withheld until verification.
-- `mutants/service.py`: intentionally wrong alternative used to check the grader.
-- `run_eval.py`: local controls, clean workspaces and offline grading.
-- `results/`: validation and manually recorded REAL trial metadata. `trials.jsonl` starts absent.
-- `transcripts/`: place only transcripts captured from actual model executions.
+## Video walkthrough link
 
-## Candidate selection and fairness
+**VIDEO_URL_PENDING** — add a publicly accessible YouTube, Loom, Vimeo or Google Drive URL (no login), maximum five minutes, with audio. Put the same link in the micro1 form. See `evaluation/VIDEO_WALKTHROUGH_TEMPLATE.md`.
 
-Ten **candidates** are packaged; pilot T01, T02 and T04 first, then select the best 6–8 for the final evaluation. See `docs/PILOT_AND_SELECTION.md` and `docs/TASK_RESEARCH_RATIONALE.md` for adversarial probes and transparent selection rules. Task specifications explicitly pin rounding and time conventions; do not add hidden behaviors when grading.
+## Domain expertise and intended audience
 
-## Requirements and validation
+The tasks draw on backend transaction design: payment idempotency, relational transaction boundaries, double-entry journals, settlement matching, integer/decimal money arithmetic, sequence-numbered event handling and audit trails. Intended readers include payments engineers, risk engineers, backend reviewers and coding-agent researchers. A failure matters because a plausible implementation can silently corrupt money-related state during a retry or partial write.
 
-Python >=3.11 and pytest 9.0.2 (see `requirements.txt`). Harbor + Docker is the intended formal agentic evaluation runner; the existing local harness remains a smoke-test and diagnostic runner. Harbor requires a compatible installation and a working container runtime. Neither Harbor nor Docker was available in the file-generation environment, so Harbor Oracle/NOP runs are not claimed as completed. The local runner is NOT a security sandbox.
+## Tasks and scoring
+
+Ten independent candidates, each with a precise `instruction.md`, an intentionally flawed `environment/service.py`, reference solution, deliberately incorrect mutant, and a pytest grader:
+
+| Task | Problem | Important invariant |
+|---|---|---|
+| T01 | Payment capture | Same idempotency key cannot debit twice |
+| T02 | Refund ceiling | Cumulative refunds cannot exceed a capture |
+| T03 | Double-entry transfer | Debit/credit balance and atomic posting |
+| T04 | Webhook ordering | Only legal state changes consume events |
+| T05 | Settlement reconciliation | Duplicate, missing, unexpected and mismatched rows distinguished |
+| T06 | FX rounding | Exact decimal conversion with target currency scale |
+| T07 | Subscription proration | UTC elapsed-second proportional charge with one final rounding |
+| T08 | Marketplace splits | Every cent conserved with deterministic remainders |
+| T09 | Dispute deadlines | Inclusive UTC deadlines; terminal state cannot reopen |
+| T10 | Transactional inbox/outbox | Balance, inbox and outbox commit together |
+
+Reward **1** means all task assertions pass; **0** means at least one fails. No LLM-as-judge is used. The score reflects the final code behavior, not the text of the response or use of a preferred SQL syntax. See [`docs/DOCUMENTATION.md`](docs/DOCUMENTATION.md) for problem details and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the trust boundary.
+
+## Dependencies and clean setup
+
+Requires Python 3.11+ for local checks, pinned `pytest==9.0.2`, and Python 3.12 in the provided task Docker images. Harbor and Docker are required only for the intended formal agentic execution. No API key is needed for local checks; hosted-model keys are supplied externally as environment variables documented in `.env.example` **without committing values**.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+python scripts/preflight.py
+python scripts/manifest.py --check
 python run_eval.py validate
+python scripts/audit_variants.py
+python scripts/repeatability.py --rounds 2
+python scripts/package_submission.py --check
 ```
 
-All 10 reference solutions must pass, and all 10 original starter code implementations and 10 deliberately wrong fixes must fail. This is a minimum smoke test, not proof the grader has zero false positives or false negatives.
+**Time/cost:** Local validation depends on the host and should be measured on the judge's machine; no cloud model fees are required for these checks. A full live run costs the sum of the provider's actual per-trial token charges, which must be recorded rather than guessed. Fill in measured runtime and approximate provider cost after the pilots. The local runner executes agent-generated code without a security sandbox; run only trusted patches locally.
 
-## Harbor + Docker (intended formal harness)
-
-See `docs/HARBOR_SETUP.md`. Each task now includes Harbor-style `task.toml`, Dockerfile, Oracle `solution/solve.sh`, and `tests/test.sh` which writes `/logs/verifier/reward.txt`. Install Harbor using Python 3.12+ and launch Docker on your own machine. The output should be verified locally first:
+## Harbor Oracle and NOP (needs working Docker)
 
 ```bash
-python scripts/preflight.py
+harbor --version && docker info
 harbor run -p tasks/T02_refund-ceiling -a oracle
 harbor run -p tasks/T02_refund-ceiling -a nop
-harbor run -p tasks/T02_refund-ceiling -a mini-swe-agent -m '<provider/exact-model-id>'
 ```
 
-**Not yet tested end-to-end in Docker/Harbor**; these commands are the next user-run acceptance gate.
+Repeat Oracle and NOP for each selected final task, then run real model trials using a supported agent/model. Verify API access is compatible with the default `no-network` policy or a restricted egress allowlist **without public GitHub solution access**. See `evaluation/REPRODUCIBILITY.md` and `evaluation/CALIBRATION_RUNBOOK.md`. Neither Harbor success nor isolation has been verified in this generated package.
 
-## Run an independent agent trial (fallback local harness)
+## Run a manual isolated diagnostic trial
 
 ```bash
-python run_eval.py prepare --task T01 --output /tmp/txn-t01-trial1
-# Open /tmp/txn-t01-trial1 in your AI coding agent; send INSTRUCTION.md as the task prompt.
-# Save its real transcript elsewhere. DO NOT point the agent at the benchmark root.
-python run_eval.py grade --task T01 --workspace /tmp/txn-t01-trial1 --output /tmp/t01-grade.json
-python run_eval.py record --task T01 --model 'your-model' --version 'exact-id' \
-  --trial 1 --transcript /path/to/real-transcript.txt --grade-json /tmp/t01-grade.json \
-  --settings '{"temperature":0}' --runtime 85 --cost 0.14
-python run_eval.py summary
+python run_eval.py prepare --task T01 --output /tmp/txn-T01-trial-01
+# Give your agent ONLY that directory and INSTRUCTION.md. Save the real transcript.
+python run_eval.py grade --task T01 --workspace /tmp/txn-T01-trial-01 --output /tmp/T01-grade.json
+python run_eval.py record --task T01 --model '<model-family>' --version '<exact-model-id>' \
+  --trial 1 --transcript /path/to/authentic-transcript.txt \
+  --grade-json /tmp/T01-grade.json --settings '{"temperature":0}' \
+  --runtime "$MEASURED_RUNTIME_SECONDS" --cost "$MEASURED_COST_USD" --agent '<agent-and-version>'
+python run_eval.py summary --output results/summary.json
 ```
 
-Use fresh workspaces and fresh model conversations for every trial. Do not reuse agent history or permit the agent to read `solution/`, `mutants/`, `tests/`, `results/`, or other tasks. Agents should work only in their isolated workspace. The grader runs after the attempt and copies tests into another temporary directory. No automatic network-based model API runner is included, so no trial numbers or scores are fabricated.
+Set `MEASURED_RUNTIME_SECONDS` and `MEASURED_COST_USD` from the authentic provider/agent run before recording; the recorder cannot verify provider billing or transcript provenance. Never expose the reference solution, graders, mutants, other trials, or repository root to the evaluated agent. For genuinely isolated model trials use Harbor, retaining complete logs and transcripts.
 
-## Grading and model comparison
+## Models tested and results
 
-Each task uses objective pytest behavioral assertions. T01/T02 optional `tests/stress_test_service.py` files provide supplementary thread contention probes; these are not part of the deterministic gating grader. The baseline score is pass/fail per task/trial. After running 3-5 independent trials per task on each model, compute observed per-task pass rate, empirical all-k (pass^k) and any-k (pass@k), and record sample sizes. Don't compare model families using trials with different instructions or graders. The repository does NOT include real model-trial evidence as delivered.
+**RESULTS_PENDING.** No frontier-model attempts were run for the distribution. Fill the table with exact model IDs, versions, temperature/reasoning settings, dates, tasks, number of trials, scores, runtime and cost. Include at least two models if possible; the guide asks for at least one frontier model and multiple independent trials per task. Run 3–5 trials per task as a starting point.
 
-## Evidence, provenance and publication
+| Model (exact ID) | Date UTC | Agent/version | Settings | Tasks | Trials per task | Pass rate | Observed pass@k / pass^k | Runtime | Cost |
+|---|---|---|---|---|---|---|---|---|---|
+| *Complete after genuine trials* | | | | | | | | | |
 
-This repo contains fresh, synthetic scenarios and code drafted with AI assistance on 2026-10-30, and must be carefully reviewed by the participant. No prior proprietary project code, confidential payment data, private Askable benchmark material, or real API keys are included. Before submitting, manually confirm every task spec matches its grader, add varied wrong-fix tests, run at least one frontier model several times, read the transcripts, report failures honestly, and document exact model versions/settings, trial times, costs and provenance.
+`python run_eval.py summary` reports observed outcomes; it does not estimate population success probabilities from sparse data. Preserve authentic `results/trials.jsonl`, `results/grades/`, `transcripts/`, and a human-reviewed `results/RESULTS_REPORT.md`. See `evaluation/RESULTS_REPORT_TEMPLATE.md`.
 
-The official micro1 event Instructions tab takes precedence over this scaffold and local documentation. ZIP up only permitted code/supporting files (<50 MB), and provide the required video (<=5 minutes) and description separately.
+## Failure analysis and key insight
 
-## Known risks and remaining work
+**FAILURE_ANALYSIS_PENDING.** For each observed model failure, cite the transcript and explain the violated invariant, the exact final-state error, and why the task instruction justified the grader's expectation. Check for false failures and report any task on which all models succeed. **HOT_TAKE_PENDING:** derive this only from observed patterns; do not invent limitations.
 
-- The initial 10 tasks are **candidates**, not validated frontier-model failures. No real agent trials were run here.
-- T01/T02/T10 have basic failure-injection controls, but **a fully calibrated, deterministic, multi-connection concurrency grader is still outstanding**. Do not claim it is complete.
-- The alternative T02 reference in `docs/alternative_solutions/` demonstrates a valid deferred-transaction + atomic conditional update approach. It must pass the same grader.
-- The frozen final model comparison must use an unchanged, independent grader. Harbor's agent/model combination must be documented exactly.
-- SQLite makes the eval offline/reproducible; its locking semantics differ from PostgreSQL and this benchmark does not claim database-engine equivalence.
+## Grader reliability
+
+Every task has a reference-positive, starter-negative and mutant-negative control; independent positive and additional negative variants check fairness. The bounded multi-connection tests on T01/T02/T10 are regression probes, not a proof that all concurrent schedules are covered. Locally recorded controls are not substitutes for Oracle/NOP inside Harbor. Any prompt/grader modification after seeing model results requires recording a new benchmark version and rerunning comparable models.
+
+## Prior work, sources and use of AI
+
+The project is an original synthetic Python/SQLite evaluation scaffold first developed during the 2026 micro1 hackathon, using general principles of financial transaction correctness. It does not intentionally incorporate private client or employer code or licensed proprietary datasets. The Harbor task layout follows publicly documented Harbor/Terminal-Bench patterns (see `evaluation/REPRODUCIBILITY.md`). AI coding assistance was used to draft parts of the scaffold, tests and documentation. **HUMAN_REVIEW_PENDING:** before final submission, describe your actual independent checks and corrections of every reference implementation, grader assertion and accounting convention. Do not claim review you have not performed.
+
+## Submission readiness and packaging
+
+```bash
+python scripts/check_submission.py
+# After genuine trials + video + human review + completed README:
+python scripts/check_submission.py --strict
+python scripts/package_submission.py --out /tmp/transaction-integrity-eval-submission.zip --final
+```
+
+Official micro1 format: one ZIP under 50 MB with this README at the ZIP root; a publicly accessible **≤5-minute audio video** linked in the README and form; a short description in both places; the task inputs/expected outcomes and graders; genuine raw model outputs, model IDs, settings, scores, and source/provenance. No videos, secrets, confidential materials or third-party content without rights inside the ZIP. The official deadline shown in the participant instructions is **November 9, 2026, 05:15 GMT**. Only the latest completed submission is evaluated.

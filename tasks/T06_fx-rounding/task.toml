@@ -2,7 +2,7 @@ schema_version = "1.4"
 
 [task]
 name = "transaction-integrity/t06-fx-rounding"
-version = "0.2.0"
+version = "0.5.0"
 description = "T06: FX conversion and currency-specific precision"
 keywords = ["python", "sqlite", "payments", "pytest", "transaction-integrity"]
 
@@ -21,4 +21,4 @@ timeout_sec = 120.0
 cpus = 2
 memory_mb = 2048
 storage_mb = 2048
-network_mode = "public"
+network_mode = "no-network"
