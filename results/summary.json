@@ -156,6 +156,18 @@
     "total_cost_usd": 0.024291510000000002
   },
   {
+    "model_version": "claude-haiku-5-5",
+    "agent": "claude-code-cli",
+    "task": "T14_refund-write-paths",
+    "trials": 10,
+    "passed": 10,
+    "pass_rate": 1.0,
+    "pass_at_k_observed": 1,
+    "pass_pow_k_observed": 1,
+    "total_runtime_seconds": 321.9,
+    "total_cost_usd": 0.08475143
+  },
+  {
     "model_version": "claude-opus-5-5",
     "agent": "claude-code-cli",
     "task": "T01_capture-idempotency",
@@ -312,6 +324,18 @@
     "total_cost_usd": 0.7183674
   },
   {
+    "model_version": "claude-opus-5-5",
+    "agent": "claude-code-cli",
+    "task": "T14_refund-write-paths",
+    "trials": 10,
+    "passed": 9,
+    "pass_rate": 0.9,
+    "pass_at_k_observed": 1,
+    "pass_pow_k_observed": 0,
+    "total_runtime_seconds": 1122.6,
+    "total_cost_usd": 2.771508
+  },
+  {
     "model_version": "claude-sonnet-5-5",
     "agent": "claude-code-cli",
     "task": "T01_capture-idempotency",
@@ -466,5 +490,17 @@
     "pass_pow_k_observed": 1,
     "total_runtime_seconds": 59.5,
     "total_cost_usd": 0.22900389999999998
+  },
+  {
+    "model_version": "claude-sonnet-5-5",
+    "agent": "claude-code-cli",
+    "task": "T14_refund-write-paths",
+    "trials": 10,
+    "passed": 9,
+    "pass_rate": 0.9,
+    "pass_at_k_observed": 1,
+    "pass_pow_k_observed": 0,
+    "total_runtime_seconds": 196.3,
+    "total_cost_usd": 0.6342771
   }
 ]

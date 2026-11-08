@@ -70,10 +70,30 @@ INVARIANTS = {
 ABLATIONS = {'T11': 'T01', 'T12': 'T02', 'T13': 'T10'}
 for _ablation, _source in ABLATIONS.items():
     INVARIANTS[_ablation] = INVARIANTS[_source]
+_T14_CEILING = ('committed refunds never exceed the current captured amount; credits match '
+                'committed refund receipts, whichever function is paused before its write')
+_T14_VOID = ('no refund commits after a void: the refunded total reported by void_remaining '
+             'stays the committed refund total, whichever function is paused before its write')
+INVARIANTS['T14'] = {
+    'test_refund_ceiling_replay_and_conflicts': 'sum of refunds never exceeds the capture; replay is idempotent',
+    'test_invalid_refunds_leave_no_changes': 'invalid refunds leave the database unchanged',
+    'test_adjust_capture_rules': 'an adjustment only lowers the amount and never below the committed refund total',
+    'test_void_remaining_rules': 'a void blocks later refunds and adjustments and reports the refunded total',
+    'test_database_errors_propagate_and_roll_back':
+        'unexpected database errors propagate and leave no changes in every function',
+    'test_refund_paused_while_capture_is_adjusted': _T14_CEILING,
+    'test_adjustment_paused_while_refund_commits': _T14_CEILING,
+    'test_refund_paused_while_capture_is_voided': _T14_VOID,
+    'test_void_paused_while_refund_commits': _T14_VOID,
+}
 RACE_TASKS = ('T01', 'T02', 'T10', 'T11', 'T12', 'T13')
 CONCURRENCY_TESTS = {'test_competing_identical_capture_across_connections',
                      'test_competing_refunds_cannot_overrefund',
-                     'test_competing_debits_preserve_balance_inbox_and_outbox'}
+                     'test_competing_debits_preserve_balance_inbox_and_outbox',
+                     'test_refund_paused_while_capture_is_adjusted',
+                     'test_adjustment_paused_while_refund_commits',
+                     'test_refund_paused_while_capture_is_voided',
+                     'test_void_paused_while_refund_commits'}
 INFRA_MARKERS = ('RACE_PROBE_INFRA', 'SyntaxError', 'IndentationError', 'ImportError',
                  'ModuleNotFoundError', 'NameError', 'errors during collection',
                  'Grading timed out', 'Grading infrastructure error', 'INTERNALERROR')
@@ -188,6 +208,26 @@ def drop_begin_use_cursor(s):
     return out.replace('conn.execute(', 'conn.cursor().execute(')
 
 
+def begin_everywhere(s):
+    """Plain deferred BEGIN in every function that starts a transaction."""
+    old = "conn.execute('BEGIN IMMEDIATE')"
+    return s.replace(old, "conn.execute('BEGIN')") if s.count(old) > 1 else None
+
+
+def drop_begin_in(*functions):
+    """Remove the transaction start from the named top-level functions only."""
+    def transform(s):
+        parts = re.split(r'(?m)^(?=def )', s)
+        for i, part in enumerate(parts):
+            if any(part.startswith(f'def {name}(') for name in functions):
+                parts[i], n = BEGIN_LINE.subn('', part, count=1)
+                if n != 1:
+                    return None
+        out = ''.join(parts)
+        return out if s.count("'BEGIN IMMEDIATE'") - out.count("'BEGIN IMMEDIATE'") == len(functions) else None
+    return transform
+
+
 def main():
     good = True
     for tid in ('T02', 'T12'):
@@ -225,6 +265,14 @@ def main():
             "conn.execute('INSERT INTO outbox VALUES(?,?,?,0)',(event_id,'account.changed',payload))",
             "conn.commit()\n            conn.execute('INSERT INTO outbox VALUES(?,?,?,0)',(event_id,'account.changed',payload))"),
             'negative', 'balance/inbox committed without outbox rejected')
+
+    # T14: three write paths share one ceiling. The reference and a plain
+    # deferred BEGIN in every function are valid; making only refund() safe
+    # (adjust_capture and void_remaining left check-then-write) must be rejected.
+    good &= check('T14', select('T14') / 'solution/service.py', 'good', 'unmodified reference accepted')
+    good &= variant('T14', begin_everywhere, 'good', 'valid deferred transaction in every function accepted')
+    good &= variant('T14', drop_begin_in('adjust_capture', 'void_remaining'), 'negative',
+                    'refund-only fix (adjust_capture and void_remaining unprotected) rejected')
 
     dest = ROOT / 'results' / 'mutation_audit.json'
     dest.parent.mkdir(parents=True, exist_ok=True)
