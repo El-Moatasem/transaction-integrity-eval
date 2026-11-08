@@ -1,3 +1,5 @@
+> Historical planning note written before the model trials. Final tasks, results and analysis: README.md and results/RESULTS_REPORT.md.
+
 # Pilot protocol: choose 6–8 of the 10 candidates
 
 ## Purpose

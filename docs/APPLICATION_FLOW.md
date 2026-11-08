@@ -1,3 +1,5 @@
+> Historical planning note written before the model trials. Final tasks, results and analysis: README.md and results/RESULTS_REPORT.md.
+
 # Transaction Integrity Eval — Application and Evaluation Flow
 
 ## 1. Candidate task flow
