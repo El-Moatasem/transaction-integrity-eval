@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T18:50:00.976044+00:00",
+  "task": "T14_refund-write-paths",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T14-cp3x5ab8/workspace",
+  "passed": false,
+  "exit_code": 1,
+  "test_log": "....F....                                                                [100%]\n=================================== FAILURES ===================================\n_________________ test_database_errors_propagate_and_roll_back _________________\n\ntmp_path = PosixPath('/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/pytest-of-el-moatasem/pytest-555/test_database_errors_propagate0')\n\n    def test_database_errors_propagate_and_roll_back(tmp_path):\n        _, c = db(tmp_path)\n        c.execute(\"CREATE TRIGGER fail_refund BEFORE INSERT ON refunds BEGIN SELECT RAISE(ABORT, 'injected refund failure'); END;\")\n        c.execute(\"CREATE TRIGGER fail_capture BEFORE UPDATE ON captures BEGIN SELECT RAISE(ABORT, 'injected capture failure'); END;\")\n        c.commit()\n        with pytest.raises(sqlite3.DatabaseError): refund(c, 'c1', 'failure', 200)\n        with pytest.raises(sqlite3.DatabaseError): adjust_capture(c, 'c1', 500)\n        with pytest.raises(sqlite3.DatabaseError): void_remaining(c, 'c1')\n>       assert state(c) == dict(amount=1000, voided=0, refunded=0, credited=0, count=0)\nE       AssertionError: assert {'amount': 10...nded': 0, ...} == {'amount': 10...nded': 0, ...}\nE         \nE         Omitting 4 identical items, use -vv to show\nE         Differing items:\nE         {'credited': 200} != {'credited': 0}\nE         Use -v to get more diff\n\ntests/test_service.py:78: AssertionError\n=========================== short test summary info ============================\nFAILED tests/test_service.py::test_database_errors_propagate_and_roll_back - ...\n1 failed, 8 passed in 6.54s\n",
+  "code_sha256": "23b7a2385655a5988e2f9f7300cb5df7430996189d17b4bedbe8062e80bbff46",
+  "instruction_sha256": "3e747a3a77bd74de65948b752e1e0de9f831358b7237bae0332cfeff0842a80a",
+  "grader_sha256": "41031d51fa2a7bb7a162a19cab983a5ae91a7e71df80248269eeb01dbe202236"
+}
