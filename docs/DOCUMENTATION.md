@@ -112,7 +112,7 @@ A task yields **reward 1** when the final implementation passes every required b
 - `evaluation/REPRODUCIBILITY.md` — Harbor/Docker commands and network-access controls
 - `evaluation/CALIBRATION_RUNBOOK.md` — exact validation and live-trial steps
 - `evaluation/GRADER_VALIDATION.md` — reference, negative-mutant and alternative-positive control methodology
-- `evaluation/RESULTS_REPORT_TEMPLATE.md` — real-run result and failure analysis format
+- `results/RESULTS_REPORT.md` — completed results report: model trial results, chronology and failure analysis
 - `scripts/package_submission.py` — produce a final evidence-including ZIP only after tests
 
 The most authoritative contract for each individual problem is its own `tasks/Txx_.../instruction.md`.
