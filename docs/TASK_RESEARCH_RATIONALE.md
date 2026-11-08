@@ -1,3 +1,5 @@
+> Historical planning note written before the model trials. Final tasks, results and analysis: README.md and results/RESULTS_REPORT.md.
+
 # Research hypothesis and why the tasks are hard
 
 **Hypothesis, not a finding:** coding agents often preserve business invariants in ordinary operations but lose those invariants under replays, reordering, partial writes or failures. This has not been demonstrated on frontier models in this prototype.
