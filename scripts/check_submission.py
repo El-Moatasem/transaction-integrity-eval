@@ -122,7 +122,7 @@ def check(strict=False):
         for name in ('RESULTS_REPORT.md', 'HUMAN_REVIEW.md'):
             p = ROOT / 'results' / name
             if not p.is_file() or len(p.read_text().strip()) < 150:
-                failures.append(f'missing reviewed results/{name} (fill from evaluation templates)')
+                failures.append(f'missing or incomplete reviewed results/{name}')
         desc = ROOT / 'submission_description.txt'
         if not desc.is_file() or len(desc.read_text().strip()) < 80 or '[' in desc.read_text() or 'PENDING' in desc.read_text():
             failures.append('missing completed submission_description.txt for event form')

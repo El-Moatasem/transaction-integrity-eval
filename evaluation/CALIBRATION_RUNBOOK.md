@@ -5,7 +5,7 @@ This runbook is a plan for the participant, **not evidence of completed runs**.
 ## 1. Clean source baseline
 
 - Run `python scripts/preflight.py`, `python scripts/manifest.py --check`, `python run_eval.py validate`, `python scripts/audit_variants.py`, and `python scripts/repeatability.py --rounds 3`.
-- Check each grader assertion against its corresponding `instruction.md`, and read all reference implementations and wrong mutants yourself. Record corrections and why in the human-review template.
+- Check each grader assertion against its corresponding `instruction.md`, and read all reference implementations and wrong mutants yourself. Record corrections and why in `results/HUMAN_REVIEW.md`.
 - Freeze code, task, grader and manifest hashes before comparative model tests.
 
 ## 2. Harbor/Docker smoke tests
@@ -30,7 +30,7 @@ This runbook is a plan for the participant, **not evidence of completed runs**.
 
 ## 5. Human review and reporting
 
-- Fill `evaluation/HUMAN_REVIEW_TEMPLATE.md` and `results/RESULTS_REPORT.md` with **observed** results and transcript links.
+- Fill `results/HUMAN_REVIEW.md` and `results/RESULTS_REPORT.md` with **observed** results and transcript links.
 - Generate `results/summary.json` using `python run_eval.py summary --output results/summary.json` after recording the trials.
 - Complete README: short description + observed key finding, video URL, exact model IDs/settings, results, failure analysis, cost/runtime, prior work/AI disclosure, and human review.
 - Run `python scripts/check_submission.py --strict` and then `python scripts/package_submission.py --out <path>.zip --final`; verify archive opens and is <50 MB. Upload video URL separately and put it in README. Do not include the video in ZIP.
