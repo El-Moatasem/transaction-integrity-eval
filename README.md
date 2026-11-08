@@ -167,7 +167,7 @@ The project is an original synthetic Python/SQLite evaluation built during the 2
 
 **Use of AI.** AI assistance (Claude, via Claude Code and chat) was used substantially. It drafted and implemented parts of the task scaffolding, reference solutions, wrong-fix mutants, graders, the race probe, the mutation audit, the trial runner, and drafts of this README, `results/RESULTS_REPORT.md` and `results/REPORT.pdf`. The evaluated models come from the same model family, which is a potential source of bias in both task design and results.
 
-**What I decided and checked myself** (details in [`results/HUMAN_REVIEW.md`](results/HUMAN_REVIEW.md)): I chose the domain and the hypothesis; reproduced the race-probe loopholes before accepting the fix; decided that plain `BEGIN` is a valid solution rather than a mutant; approved every spec clarification and the T11–T14 instructions behavior by behavior; ran every trial batch; decided to add T11–T13 and T14 and to extend T14 after its first failure; and read both failing implementations to identify each root cause.
+**What I decided and checked myself** (details in [`results/HUMAN_REVIEW.md`](results/HUMAN_REVIEW.md)): I chose the domain and the hypothesis; reviewed the race-probe loopholes and the evidence for the fix before accepting it; decided that plain `BEGIN` is a valid solution rather than a mutant; approved every spec clarification and the T11–T14 instructions behavior by behavior; ran every trial batch; decided to add T11–T13 and T14 and to extend T14 after its first failure; and read both failing implementations to identify each root cause.
 
 ## Packaging
 
