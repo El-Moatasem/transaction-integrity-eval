@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:47:00.487646+00:00",
+  "task": "T04_webhook-ordering",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T04-l53d6qmw/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "code_sha256": "f1f8979c99568162da37a837dc16b91cb2a16e57bc8dc96ea5125d21b8e2c34e",
+  "instruction_sha256": "b297cc1954bb8069e74c70ff5eec9f378d35de790915f848282f208659ff79f6",
+  "grader_sha256": "b0b7ef0ae1913eaf5fff799fa23a004b04278059693ac70d83eecdfe50258e98"
+}

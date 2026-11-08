@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:47:10.777135+00:00",
+  "task": "T05_settlement-reconciliation",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T05-3u4lu2kj/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "...                                                                      [100%]\n3 passed in 0.01s\n",
+  "code_sha256": "e33a91fb1361b7d7e7c33b64d776d59aa7f04b64196291cf08bbd132be82fe92",
+  "instruction_sha256": "7f6dac5a5cb78f6a120d8a2686ef311b2c529c6833640aecc4910b049ef1cb6d",
+  "grader_sha256": "d372005a2aa8e03125e83db6af1b8529ac7d44f771593e5c0519f0584a43bca7"
+}

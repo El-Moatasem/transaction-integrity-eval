@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:53:53.046371+00:00",
+  "task": "T12_refund-ceiling-implicit",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T12-l3_7b_mq/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "....                                                                     [100%]\n4 passed in 1.66s\n",
+  "code_sha256": "1b3f3850e53728812e9715e99f8037b899d0010d2a8eaf8a1b02aef8db0bc8dc",
+  "instruction_sha256": "e6b5c657be1997675039684ae5f8dd198c8fefcb0ab3eb1960b85bc31e25b4a5",
+  "grader_sha256": "ddc23d80573e9529d322edcc5d4a1d8fd544892a333fbe8508461e4ef1162620"
+}

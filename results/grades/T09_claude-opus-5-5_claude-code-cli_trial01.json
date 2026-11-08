@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:29:12.028498+00:00",
+  "task": "T09_dispute-deadlines",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T09-0peksuxk/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "...                                                                      [100%]\n3 passed in 0.01s\n",
+  "code_sha256": "a87a67dce87a8056aa6b77278a137c5c58d7e27d5fceb81f250e98b5b2e60382",
+  "instruction_sha256": "20c28198bf096639ab19e40dd66d8114554de084030cbd35e7928461edcad2f2",
+  "grader_sha256": "911e579ec23bad79d3a9228b3bd482d7f32448f0e3df105505a82ddfcb0fee1d"
+}
