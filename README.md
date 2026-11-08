@@ -12,7 +12,7 @@ The domain is financial-transaction software engineering. This eval tests whethe
 
 ## Video walkthrough link
 
-**VIDEO_URL_PENDING**: replace this line with the public YouTube/Loom/Vimeo/Google Drive link (no login, at most 5 minutes, with audio). Use the same link in the micro1 form.
+**Video walkthrough:** https://www.youtube.com/watch?v=YD1XZVxqKXg
 
 ## Domain expertise and intended audience
 
