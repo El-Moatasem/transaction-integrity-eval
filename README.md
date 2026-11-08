@@ -121,6 +121,8 @@ Both failing solutions put `BEGIN IMMEDIATE` on all three write paths and passed
       return {...}          # returns with the write transaction still open
   ```
 
+  Evidence: [transcript](transcripts/T14_claude-sonnet-5-5_claude-code-cli_trial03.jsonl) · [final code](results/final_code/T14_claude-sonnet-5-5_trial03.py)
+
 - **Opus 5.5, T14 trial 8: rollback helper that commits.** Opus wrapped transactions in its own helpers. Its `_rollback` starts by calling `_begin_safe` → `_begin`, and `_begin` "cleans up" by committing any open transaction. So when the refund-receipt `INSERT` failed, the error path committed the balance update that had already run, and then rolled back an empty transaction. The customer ended up credited 200 cents with no refund receipt. That breaks two stated rules: a call that raises must leave the database unchanged, and no credit may exist without its receipt.
 
   ```python
@@ -133,6 +135,8 @@ Both failing solutions put `BEGIN IMMEDIATE` on all three write paths and passed
       if conn.in_transaction:
           conn.commit()     # ... which commits the failed transaction's partial write
   ```
+
+  Evidence: [transcript](transcripts/T14_claude-opus-5-5_claude-code-cli_trial08.jsonl) · [final code](results/final_code/T14_claude-opus-5-5_trial08.py)
 
 I checked both against the spec and the code. Neither is a false failure: each maps to an explicit sentence in the instruction and shows up as a wrong exception type or wrong persisted state. On 13 of the 14 tasks, all three models passed every trial.
 

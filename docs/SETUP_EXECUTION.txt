@@ -1,3 +1,5 @@
+> Historical planning note written before the model trials. Final tasks, results and analysis: README.md and results/RESULTS_REPORT.md.
+
 TRANSACTION INTEGRITY EVAL V2 — SETUP & EXECUTION
 ================================================
 Prepared: 2026-10-31

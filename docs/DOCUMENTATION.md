@@ -7,7 +7,7 @@ This is an original, offline-first Python/SQLite **coding-agent evaluation**, no
 
 Can coding agents preserve financial transaction invariants not only in the happy path, but also under concurrent requests, repeated operations, reordered messages, interrupted writes, and recovery?
 
-**Status:** These ten problems are original evaluation candidates, not confirmed model failure cases. The full authoritative contract for each lives in `tasks/<task>/instruction.md`.
+**Status:** 14 tasks (T01–T10, ablations T11–T13, T14) evaluated in 147 trials; see README.md and results/RESULTS_REPORT.md. The full authoritative contract for each lives in `tasks/<task>/instruction.md`.
 
 | ID | Problem | Required invariant | Why it can be challenging |
 |---|---|---|---|
