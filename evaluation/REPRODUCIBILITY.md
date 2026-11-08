@@ -71,3 +71,29 @@ Do not interpret an agent's access to a published GitHub solution as a legitimat
 ## Code-ready versus final submission
 
 The distributed baseline is **ready for local grading/calibration**, not yet a complete micro1 submission. To become eligible under the participant guide it still needs genuine model transcripts, per-model scores/settings, judge-reproducible results, participant expert review, a short description, and a publicly accessible video URL with audio. The `check_submission.py --strict` gate explicitly requires these, and `package_submission.py --final` refuses to produce a final ZIP otherwise. Do not place Git-flow/PR instruction files inside the project package.
+
+## Claude Code CLI trial runner
+
+`scripts/run_claude_trials.py` runs headless `claude -p` trials and records them through `run_eval.py record`. Check it without any model call:
+
+```bash
+python scripts/run_claude_trials.py --help
+python scripts/run_claude_trials.py --models <exact-model-id> --tasks T01,T10 --trials 1 --dry-run
+python -m unittest discover -s scripts -p 'test_trial_runner.py'   # stub CLI in a temp repo copy; aborts unless `claude` resolves to the stub
+```
+
+What it guarantees:
+
+- Each trial gets a fresh temporary workspace outside the repository containing only `INSTRUCTION.md` and the starter `service.py` (no reference solution, mutants, hidden tests, Git history or other trials).
+- Missing `result` events, non-zero CLI exits, `is_error` results (authentication, rate limit, overload), crashes, timeouts and grader infrastructure errors are reported as `[INFRA - not recorded]` and are never recorded as model failures. Rerun to retry.
+- Recorded settings include the requested and CLI-reported model, CLI version, tool policy, turn limit, runtime and cost; the record adds transcript, code and grader SHA-256 hashes and repository-relative transcript/grade paths.
+- A genuine CLI result event with `subtype == "error_max_turns"` is classified **before** the generic `is_error`/non-zero-exit check as a model attempt that exhausted its turn budget, not an infrastructure failure. Its final `service.py` is graded by the normal grader and recorded with its real pass/fail outcome; the subtype never decides the score. Settings record `stop_subtype`, `max_turns` and `turn_budget_exhausted: true`. If such an attempt cannot be graded (no report, or a grader exit other than 0/1), its transcript, final code, runtime and cost are preserved under `results/incomplete/` and listed in `results/incomplete_attempts.jsonl` with `status: incomplete` and no score; it is excluded from `trials.jsonl` and pass rates, and its trial slot is not re-run on resume.
+- Already-recorded (task, model, agent, trial) combinations are skipped, and `record` refuses to overwrite existing evidence, so interrupted batches resume safely.
+- Record operations are serialized by a process-local `threading.Lock` in the runner and an exclusive `fcntl` file lock (`results/.trials.lock`) inside `run_eval.py record`, so parallel workers and concurrent POSIX processes cannot interleave the duplicate check, evidence copy and JSONL append. On Windows (no `fcntl`) only the thread lock applies: do not run two batches at once there.
+
+What it does **not** guarantee (workspace isolation is not network or filesystem isolation):
+
+- Disabling `WebFetch`/`WebSearch` does not block the network. The agent keeps the `Bash` tool, which can run `curl`, `wget`, `git clone`, `pip install` or Python `urllib`. No network sandbox is applied.
+- `Bash` runs as your OS user and can read any path you can, including this repository and its reference solutions.
+- The CLI still loads your user-level Claude Code settings and `CLAUDE.md` unless you pass `--bare` (which requires `ANTHROPIC_API_KEY`). MCP servers are skipped with `--strict-mcp-config`.
+- After each batch (or with `--audit-only`) the runner scans every recorded transcript's tool calls for indicators (`github`, `curl`, `wget`, `urllib`, `requests`, `pip install`, URLs, this repository's path, `solution/`/`mutants/` paths) and writes `results/network_audit.json`. Flagged trials need human review; a flag is not proof of contamination, and no flag is not proof of isolation, because command-string scanning cannot detect every network or file access.

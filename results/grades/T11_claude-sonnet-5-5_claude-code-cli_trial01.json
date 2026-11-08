@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:54:58.991258+00:00",
+  "task": "T11_capture-idempotency-implicit",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T11-ylpjfhjs/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "....                                                                     [100%]\n4 passed in 1.65s\n",
+  "code_sha256": "f4bf0542abd5e10605aaf6ad2c73207d09e9e30f81368c3cfaf7eebe6b616261",
+  "instruction_sha256": "2c09b5ad6aa2b3e112b8ec7c2cc99bfba1d42ce11f8f3fbaa3fdc37c9d80a42a",
+  "grader_sha256": "80adc11110ca37ad8f33a6a67dbd1810289eee52172b6b315588451ed32dfda5"
+}

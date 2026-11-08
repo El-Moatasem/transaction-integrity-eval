@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:47:21.904082+00:00",
+  "task": "T03_double-entry-transfer",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T03-18j2lvzd/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": ".....                                                                    [100%]\n5 passed in 0.02s\n",
+  "code_sha256": "2a7b137fe24d20655aa564311fc824cc4f5a88d676ee4c78b85d8a325e7cb7a8",
+  "instruction_sha256": "e5e969f4b1c226b31fb4f93d12cb8e69dbe61ce2337ff5b45801d183a695b358",
+  "grader_sha256": "1dd69d9883cfbdda613e58b40d1e4037b4798b3c871602adf292517ad52f2cb3"
+}

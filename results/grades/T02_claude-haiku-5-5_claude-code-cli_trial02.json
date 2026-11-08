@@ -1,0 +1,11 @@
+{
+  "timestamp_utc": "2026-11-08T17:46:55.192955+00:00",
+  "task": "T02_refund-ceiling",
+  "workspace": "/private/var/folders/fs/8s8c9g190t770b0xnpg810dh0000gn/T/txn-T02-cet_8rgz/workspace",
+  "passed": true,
+  "exit_code": 0,
+  "test_log": "....                                                                     [100%]\n4 passed in 1.64s\n",
+  "code_sha256": "7e48def00cb4506108ef5a957a57b812ebc9e6219cb63d04ca090480f5e7a9ff",
+  "instruction_sha256": "72c14cf4e2ca71e8cc6dcbe1472ddd85569369cdba6ee09b37b9e39a88875780",
+  "grader_sha256": "ddc23d80573e9529d322edcc5d4a1d8fd544892a333fbe8508461e4ef1162620"
+}

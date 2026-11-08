@@ -15,5 +15,10 @@ Preserve committed financial state across concurrency, retries, reordering, and 
 T01: duplicate same-key captures competing, conflicting payloads, balance debits exactly once, after-failure retry.
 T10: failure between inbox, balance and outbox writes must roll back all three; duplicate event delivery across connections remains idempotent.
 
+## Race-probe status and known limitation
+Implemented: `tests/race_probe.py` (T01/T02/T10) pauses connection A via the SQLite statement-trace hook before its first INSERT/UPDATE/DELETE/REPLACE, lets B run for a bounded window, then always releases A. Self-tests: `python -m unittest discover -s scripts -p 'test_race_probe.py'`. See `evaluation/GRADER_VALIDATION.md`.
+
+Known limitation (not solved): an implementation that writes, then reads, then writes again is paused at its first write, not at its decisive read. The probe therefore does not guarantee that B commits inside a race window located after A's first write. Change the probe design only if a concrete test demonstrates a false pass or false fail caused by this.
+
 ## Publication standard
 Never infer 20/20 grader reliability from smoke tests. Maintain a positive/negative matrix and manually review valid alternative solutions and failure logs.

@@ -56,8 +56,10 @@ def check(strict=False):
         if not (ROOT / name).is_file():
             failures.append(f'missing required root file: {name}')
     tasks_list = tasks()
-    if len(tasks_list) != 10:
-        failures.append(f'expected ten candidate task directories, got {len(tasks_list)}')
+    catalog = json.loads((ROOT / 'task_catalog.json').read_text())
+    if len(tasks_list) != len(catalog):
+        failures.append(f'expected {len(catalog)} candidate task directories '
+                        f'(task_catalog.json entries), got {len(tasks_list)}')
     if not (ROOT / 'manifests' / 'SOURCE.sha256').is_file():
         failures.append('missing source SHA256 manifest')
     else:

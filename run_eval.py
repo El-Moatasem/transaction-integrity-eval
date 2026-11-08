@@ -6,6 +6,7 @@ script to grade code you are prepared to execute on your current machine.
 """
 import argparse
 from collections import defaultdict
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -154,6 +155,28 @@ def _safe_name(value):
     return slug
 
 
+@contextmanager
+def records_lock():
+    """Exclusive cross-process lock for results/trials.jsonl (POSIX fcntl).
+
+    Without fcntl (Windows) this degrades to no locking; do not run concurrent
+    recorders there.
+    """
+    lock_path = ROOT / 'results' / '.trials.lock'
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        import fcntl
+    except ImportError:
+        yield
+        return
+    with lock_path.open('a') as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+
+
 def record(args):
     """Copy an ACTUAL transcript + grade into portable in-package evidence paths.
 
@@ -186,6 +209,11 @@ def record(args):
     transcript_suffix = transcript.suffix.lower() if transcript.suffix.lower() in ('.txt', '.json', '.jsonl', '.log', '.md') else '.txt'
     raw_dst = ROOT / 'transcripts' / (basename + transcript_suffix)
     grade_dst = ROOT / 'results' / 'grades' / (basename + '.json')
+    with records_lock():
+        return _record_locked(args, task, settings, transcript, grade_path, g, raw_dst, grade_dst, basename)
+
+
+def _record_locked(args, task, settings, transcript, grade_path, g, raw_dst, grade_dst, basename):
     records = ROOT / 'results' / 'trials.jsonl'
     existing = [json.loads(line) for line in records.read_text().splitlines() if line.strip()] if records.exists() else []
     key = (task.name, args.version, args.agent, args.trial)
