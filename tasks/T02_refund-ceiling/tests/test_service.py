@@ -31,3 +31,32 @@ def test_injected_partial_write_failure_rolls_back(tmp_path):
     with pytest.raises(sqlite3.DatabaseError):refund(c,'c1','failure',200)
     assert c.execute("SELECT available_cents FROM balances WHERE account_id='alice'").fetchone()[0]==0
     assert c.execute('SELECT count(*) FROM refunds').fetchone()[0]==0
+
+from race_probe import pair_on_file, permissible_error
+
+def test_competing_refunds_cannot_overrefund(tmp_path):
+    path, seed = db(tmp_path)
+    seed.close()
+    outcomes = pair_on_file(
+        path,
+        lambda conn: refund(conn, 'c1', 'rA', 700),
+        lambda conn: refund(conn, 'c1', 'rB', 700),
+        lambda sql: 'from refunds' in sql and 'sum(' in sql,
+    )
+    for result, err in outcomes:
+        assert permissible_error(err), f'unexpected competing refund error: {err!r}'
+        if result is not None:
+            assert result['status'] == 'refunded' and result['amount_cents'] == 700
+    with sqlite3.connect(path, timeout=5) as conn:
+        total = conn.execute('SELECT COALESCE(SUM(amount_cents),0) FROM refunds WHERE capture_id=?', ('c1',)).fetchone()[0]
+        credited = conn.execute("SELECT available_cents FROM balances WHERE account_id='alice'").fetchone()[0]
+        assert total <= 1000, 'committed refund ceiling exceeded'
+        assert credited == total, 'refund accounting diverged from committed receipts'
+        if total == 0:
+            refund(conn, 'c1', 'rA', 700)  # safe retry after allowed lock timeouts
+        total = conn.execute('SELECT COALESCE(SUM(amount_cents),0) FROM refunds WHERE capture_id=?', ('c1',)).fetchone()[0]
+        assert total == 700
+        assert conn.execute("SELECT available_cents FROM balances WHERE account_id='alice'").fetchone()[0] == 700
+        assert conn.execute('SELECT COUNT(*) FROM refunds WHERE capture_id=?', ('c1',)).fetchone()[0] == 1
+        with pytest.raises(ValueError):
+            refund(conn, 'c1', 'extra', 400)

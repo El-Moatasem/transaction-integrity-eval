@@ -5,6 +5,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -12,4 +13,10 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements.txt
       - run: python scripts/preflight.py
-      - run: python run_eval.py validate
+      - run: python -m unittest discover -s scripts -p 'test_submission_policy.py'
+      - run: python scripts/manifest.py --check
+      - run: python -m compileall -q run_eval.py scripts tasks
+      - run: python run_eval.py validate --timeout 35
+      - run: python scripts/audit_variants.py
+      - run: python scripts/check_submission.py
+      - run: python scripts/package_submission.py --check

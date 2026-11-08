@@ -29,3 +29,15 @@ def test_conflicting_replay_does_not_modify_journal():
 
 def test_extra_zeroes_allowed():
     c=db();assert post_transfer(c,'decimal','a','b','1.200','USD')['amount_minor']==120
+
+def test_second_ledger_entry_failure_rolls_back_transfer():
+    c = db()
+    c.execute("CREATE TRIGGER reject_credit BEFORE INSERT ON entries "
+              "WHEN NEW.side='credit' BEGIN SELECT RAISE(ABORT, 'injected credit failure'); END")
+    c.commit()
+    with pytest.raises(sqlite3.DatabaseError):
+        post_transfer(c, 'rollback', 'a', 'b', '9.20', 'USD')
+    assert c.execute("SELECT COUNT(*) FROM transfers WHERE transfer_id='rollback'").fetchone()[0] == 0
+    assert c.execute("SELECT COUNT(*) FROM entries WHERE transfer_id='rollback'").fetchone()[0] == 0
+    c.execute('DROP TRIGGER reject_credit');c.commit()
+    assert post_transfer(c,'rollback','a','b','9.20','USD')['entry_count'] == 2
